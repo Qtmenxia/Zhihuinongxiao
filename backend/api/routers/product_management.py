@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from typing import Optional
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from backend.api.dependencies import (
     get_session,
@@ -81,7 +81,7 @@ async def create_product(
         description=product_data.description,
         is_active=True,
         is_featured=False,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)()
     )
     
     db.add(product)
@@ -249,7 +249,7 @@ async def update_product(
     for field, value in update_dict.items():
         setattr(product, field, value)
     
-    product.updated_at = datetime.utcnow()
+    product.updated_at = datetime.now(timezone.utc)()
     
     await db.commit()
     await db.refresh(product)
@@ -292,7 +292,7 @@ async def delete_product(
     
     # 软删除
     product.is_active = False
-    product.updated_at = datetime.utcnow()
+    product.updated_at = datetime.now(timezone.utc)()
     
     await db.commit()
     
@@ -345,7 +345,7 @@ async def update_product_stock(
         )
     
     product.stock = new_stock
-    product.updated_at = datetime.utcnow()
+    product.updated_at = datetime.now(timezone.utc)()
     
     await db.commit()
     await db.refresh(product)

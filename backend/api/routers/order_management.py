@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from typing import Optional
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from backend.api.dependencies import (
     get_session,
@@ -94,7 +94,7 @@ async def create_order(
         shipping_address=order_data.shipping_address.dict(),
         customer_note=order_data.customer_note,
         status=OrderStatus.PENDING,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)()
     )
     
     db.add(order)
@@ -269,19 +269,19 @@ async def update_order_status(
     
     # 更新时间戳
     if new_status == OrderStatus.PAID:
-        order.paid_at = datetime.utcnow()
+        order.paid_at = datetime.now(timezone.utc)()
     elif new_status == OrderStatus.SHIPPED:
-        order.shipped_at = datetime.utcnow()
+        order.shipped_at = datetime.now(timezone.utc)()
         if status_update.tracking_number:
             order.tracking_number = status_update.tracking_number
     elif new_status == OrderStatus.COMPLETED:
-        order.completed_at = datetime.utcnow()
+        order.completed_at = datetime.now(timezone.utc)()
     
     # 更新备注
     if status_update.farmer_note:
         order.farmer_note = status_update.farmer_note
     
-    order.updated_at = datetime.utcnow()
+    order.updated_at = datetime.now(timezone.utc)()
     
     await db.commit()
     await db.refresh(order)

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from backend.api.dependencies import get_session, get_current_farmer
 from backend.models.farmer import Farmer
@@ -41,7 +41,7 @@ async def get_dashboard_stats(
     services_count = services_result.scalar()
     
     # 订单统计(本月)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)()
     month_start = datetime(now.year, now.month, 1)
     
     orders_result = await db.execute(
@@ -106,7 +106,7 @@ async def get_sales_trend(
     from sqlalchemy import and_, cast, Date
     
     # 计算起始日期
-    end_date = datetime.utcnow().date()
+    end_date = datetime.now(timezone.utc)().date()
     start_date = end_date - timedelta(days=days)
     
     # 按天统计订单和销售额
@@ -241,7 +241,7 @@ async def get_service_performance(
     
     for service in services:
         # 统计今日调用
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(timezone.utc)().replace(hour=0, minute=0, second=0, microsecond=0)
         
         calls_result = await db.execute(
             select(func.count()).select_from(ServiceLog).where(
@@ -300,7 +300,7 @@ async def get_cost_analysis(
     from sqlalchemy import and_
     
     # 计算时间范围
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)()
     if period == "week":
         start_date = now - timedelta(days=7)
     elif period == "month":

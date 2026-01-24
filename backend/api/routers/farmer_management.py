@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import bcrypt
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from backend.api.dependencies import (
     get_session,
@@ -76,7 +76,7 @@ async def register_farmer(
         village=farmer_data.village,
         tier=FarmerTier.FREE,
         is_verified=False,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)()
     )
     
     db.add(farmer)
@@ -191,7 +191,7 @@ async def update_farmer_info(
     if update_data.village is not None:
         current_farmer.village = update_data.village
     
-    current_farmer.updated_at = datetime.utcnow()
+    current_farmer.updated_at = datetime.now(timezone.utc)()
     
     await db.commit()
     await db.refresh(current_farmer)
@@ -315,9 +315,9 @@ async def upgrade_subscription(
     
     # 更新订阅
     current_farmer.tier = tier_enum
-    current_farmer.subscription_start = datetime.utcnow()
-    current_farmer.subscription_end = datetime.utcnow() + timedelta(days=30)
-    current_farmer.updated_at = datetime.utcnow()
+    current_farmer.subscription_start = datetime.now(timezone.utc)()
+    current_farmer.subscription_end = datetime.now(timezone.utc)() + timedelta(days=30)
+    current_farmer.updated_at = datetime.now(timezone.utc)()
     
     await db.commit()
     await db.refresh(current_farmer)

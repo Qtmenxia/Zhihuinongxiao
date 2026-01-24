@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from backend.api.dependencies import (
@@ -381,7 +381,7 @@ async def deploy_service(
         
         # 更新数据库
         service.is_deployed = True
-        service.deployed_at = datetime.utcnow()
+        service.deployed_at = datetime.now(timezone.utc)()
         service.endpoints = deployment_result["endpoints"]
         await db.commit()
         
@@ -627,25 +627,25 @@ async def call_service_tool(
     
     try:
         # 调用服务
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)()
         result = await deployment_service.call_service_tool(
             service_id=service_id,
             tool_name=tool_name,
             params=params
         )
-        latency = (datetime.utcnow() - start_time).total_seconds() * 1000
+        latency = (datetime.now(timezone.utc)() - start_time).total_seconds() * 1000
         
         # 记录日志
         from backend.models.service_log import ServiceLog
         log_entry = ServiceLog(
-            id=f"log_{service_id}_{datetime.utcnow().timestamp()}",
+            id=f"log_{service_id}_{datetime.now(timezone.utc)().timestamp()}",
             service_id=service_id,
             tool_name=tool_name,
             input_params=params,
             output_result=str(result),
             latency=latency,
             status="success",
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)()
         )
         db.add(log_entry)
         
@@ -665,13 +665,13 @@ async def call_service_tool(
         # 记录错误日志
         from backend.models.service_log import ServiceLog
         log_entry = ServiceLog(
-            id=f"log_{service_id}_{datetime.utcnow().timestamp()}",
+            id=f"log_{service_id}_{datetime.now(timezone.utc)().timestamp()}",
             service_id=service_id,
             tool_name=tool_name,
             input_params=params,
             status="error",
             error_message=str(e),
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)()
         )
         db.add(log_entry)
         
