@@ -20,7 +20,7 @@ from backend.models.base import Base
 from backend.models.farmer import Farmer, FarmerTier
 from backend.models.product import Product
 from backend.config.settings import settings
-from backend.config.product_config import PUPU_PRODUCTS
+from backend.config.product_config import PRODUCT_CATALOG
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -107,7 +107,7 @@ async def init_products(farmer_id: str):
             return
         
         # 添加预设产品
-        for category, products in PUPU_PRODUCTS.items():
+        for category, products in PRODUCT_CATALOG.items():
             for product_info in products:
                 product = Product(
                     id=f"prod_{secrets.token_hex(6)}",

@@ -1,7 +1,7 @@
 """
 服务相关的Pydantic数据模型
 """
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, List
 from datetime import datetime
 
@@ -26,7 +26,8 @@ class ServiceGenerationRequest(BaseModel):
         example="gemini-2.5-pro"
     )
     
-    @validator('requirement')
+    @field_validator('requirement')
+    @classmethod
     def requirement_must_be_detailed(cls, v):
         if len(v.strip()) < 10:
             raise ValueError('需求描述过于简短，请提供更详细的说明')

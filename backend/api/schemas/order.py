@@ -1,7 +1,7 @@
 """
 订单相关的Pydantic数据模型
 """
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, List
 from datetime import datetime
 
@@ -27,7 +27,8 @@ class ShippingAddress(BaseModel):
     district: str = Field(..., description="区县")
     detail: str = Field(..., description="详细地址")
     
-    @validator('phone')
+    @field_validator('phone')
+    @classmethod
     def phone_must_be_valid(cls, v):
         import re
         if not re.match(r'^1[3-9]\d{9}$', v):
@@ -43,7 +44,8 @@ class OrderCreate(BaseModel):
     payment_method: str = Field(..., description="支付方式", example="wechat")
     customer_note: Optional[str] = Field(None, max_length=500, description="买家留言")
     
-    @validator('payment_method')
+    @field_validator('payment_method')
+    @classmethod
     def payment_method_must_be_valid(cls, v):
         valid_methods = ['wechat', 'alipay']
         if v not in valid_methods:
@@ -106,7 +108,8 @@ class OrderStatusUpdate(BaseModel):
     tracking_number: Optional[str] = Field(None, description="物流单号")
     farmer_note: Optional[str] = Field(None, description="农户备注")
     
-    @validator('status')
+    @field_validator('status')
+    @classmethod
     def status_must_be_valid(cls, v):
         valid_statuses = ['pending', 'paid', 'shipped', 'completed', 'cancelled', 'refunded']
         if v not in valid_statuses:

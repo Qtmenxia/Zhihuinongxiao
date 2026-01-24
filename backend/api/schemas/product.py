@@ -1,7 +1,7 @@
 """
 产品相关的Pydantic数据模型
 """
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, List
 from datetime import datetime
 
@@ -36,7 +36,8 @@ class ProductCreate(BaseModel):
     # 描述
     description: Optional[str] = Field(None, max_length=2000, description="产品描述")
     
-    @validator('original_price')
+    @field_validator('original_price')
+    @classmethod
     def original_price_must_be_higher(cls, v, values):
         if v is not None and 'price' in values and v < values['price']:
             raise ValueError('原价必须高于售价')

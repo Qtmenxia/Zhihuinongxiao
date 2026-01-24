@@ -13,10 +13,10 @@ if str(project_root) not in sys.path:
 os.chdir(project_root)
 load_dotenv()
 
-from framwork.mcp_swe_flow.graph import create_mcp_swe_workflow
-from framwork.mcp_swe_flow.state import MCPWorkflowState
-from framwork.mcp_swe_flow.config import llm
-from framwork.logger import logger
+from graph import create_mcp_swe_workflow
+from state import MCPWorkflowState
+from config import llm
+from logger import logger
 
 async def main():
     parser = argparse.ArgumentParser(description="Run the MCP Agent LangGraph workflow.")
