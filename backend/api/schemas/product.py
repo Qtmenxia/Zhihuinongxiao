@@ -1,7 +1,7 @@
 """
 产品相关的Pydantic数据模型
 """
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator,ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -82,9 +82,8 @@ class ProductResponse(BaseModel):
     is_featured: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
-    
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProductListResponse(BaseModel):

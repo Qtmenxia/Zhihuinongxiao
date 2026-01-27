@@ -76,7 +76,7 @@ async def register_farmer(
         village=farmer_data.village,
         tier=FarmerTier.FREE,
         is_verified=False,
-        created_at=datetime.now(timezone.utc)()
+        created_at=datetime.now(timezone.utc)
     )
     
     db.add(farmer)
@@ -91,7 +91,7 @@ async def register_farmer(
     return FarmerLoginResponse(
         access_token=access_token,
         token_type="bearer",
-        farmer=FarmerResponse.from_orm(farmer)
+        farmer=FarmerResponse.model_validate(farmer)
     )
 
 
@@ -142,7 +142,7 @@ async def login_farmer(
     return FarmerLoginResponse(
         access_token=access_token,
         token_type="bearer",
-        farmer=FarmerResponse.from_orm(farmer)
+        farmer=FarmerResponse.model_validate(farmer)
     )
 
 
@@ -161,7 +161,7 @@ async def get_current_farmer_info(
     Args:
         current_farmer: 当前农户
     """
-    return FarmerResponse.from_orm(current_farmer)
+    return FarmerResponse.model_validate(current_farmer)
 
 
 @router.put(
@@ -191,12 +191,12 @@ async def update_farmer_info(
     if update_data.village is not None:
         current_farmer.village = update_data.village
     
-    current_farmer.updated_at = datetime.now(timezone.utc)()
+    current_farmer.updated_at = datetime.now(timezone.utc)
     
     await db.commit()
     await db.refresh(current_farmer)
     
-    return FarmerResponse.from_orm(current_farmer)
+    return FarmerResponse.model_validate(current_farmer)
 
 
 @router.get(
@@ -315,13 +315,13 @@ async def upgrade_subscription(
     
     # 更新订阅
     current_farmer.tier = tier_enum
-    current_farmer.subscription_start = datetime.now(timezone.utc)()
-    current_farmer.subscription_end = datetime.now(timezone.utc)() + timedelta(days=30)
-    current_farmer.updated_at = datetime.now(timezone.utc)()
+    current_farmer.subscription_start = datetime.now(timezone.utc)
+    current_farmer.subscription_end = datetime.now(timezone.utc) + timedelta(days=30)
+    current_farmer.updated_at = datetime.now(timezone.utc)
     
     await db.commit()
     await db.refresh(current_farmer)
     
     # TODO: 集成支付系统
     
-    return FarmerResponse.from_orm(current_farmer)
+    return FarmerResponse.model_validate(current_farmer)

@@ -81,14 +81,14 @@ async def create_product(
         description=product_data.description,
         is_active=True,
         is_featured=False,
-        created_at=datetime.now(timezone.utc)()
+        created_at=datetime.now(timezone.utc)
     )
     
     db.add(product)
     await db.commit()
     await db.refresh(product)
     
-    return ProductResponse.from_orm(product)
+    return ProductResponse.model_validate(product)
 
 
 @router.get(
@@ -166,7 +166,7 @@ async def list_products(
     products = result.scalars().all()
     
     # 转换为响应模型
-    items = [ProductResponse.from_orm(p) for p in products]
+    items = [ProductResponse.model_validate(p) for p in products]
     
     return ProductListResponse(
         items=items,
@@ -205,7 +205,7 @@ async def get_product(
             detail="Product not found"
         )
     
-    return ProductResponse.from_orm(product)
+    return ProductResponse.model_validate(product)
 
 
 @router.put(
@@ -249,12 +249,12 @@ async def update_product(
     for field, value in update_dict.items():
         setattr(product, field, value)
     
-    product.updated_at = datetime.now(timezone.utc)()
+    product.updated_at = datetime.now(timezone.utc)
     
     await db.commit()
     await db.refresh(product)
     
-    return ProductResponse.from_orm(product)
+    return ProductResponse.model_validate(product)
 
 
 @router.delete(
@@ -292,7 +292,7 @@ async def delete_product(
     
     # 软删除
     product.is_active = False
-    product.updated_at = datetime.now(timezone.utc)()
+    product.updated_at = datetime.now(timezone.utc)
     
     await db.commit()
     
@@ -345,12 +345,12 @@ async def update_product_stock(
         )
     
     product.stock = new_stock
-    product.updated_at = datetime.now(timezone.utc)()
+    product.updated_at = datetime.now(timezone.utc)
     
     await db.commit()
     await db.refresh(product)
     
-    return ProductResponse.from_orm(product)
+    return ProductResponse.model_validate(product)
 
 
 @router.get(

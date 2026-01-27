@@ -2,10 +2,11 @@
 农户相关的Pydantic Schema
 用于API请求/响应的数据验证和序列化
 """
-from pydantic import BaseModel, Field, EmailStr, field_validator, model_validator
+from pydantic import BaseModel, Field, EmailStr, field_validator, model_validator,ConfigDict
 from typing import Optional
 from datetime import datetime
 from enum import Enum
+
 
 
 # ==================== 枚举类型 ====================
@@ -181,9 +182,9 @@ class FarmerResponse(BaseModel):
     # 时间戳
     created_at: datetime
     updated_at: datetime
-    
-    class Config:
-        from_attributes = True  # ✅ Pydantic v2 使用 from_attributes 替代 orm_mode
+
+    model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra = {
             "example": {
                 "id": "farmer_puzhou_001",
@@ -204,7 +205,7 @@ class FarmerResponse(BaseModel):
                 "created_at": "2024-01-01T00:00:00Z",
                 "updated_at": "2024-01-15T12:30:00Z"
             }
-        }
+        })
 
 
 class FarmerLoginResponse(BaseModel):

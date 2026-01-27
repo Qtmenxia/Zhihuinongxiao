@@ -94,7 +94,7 @@ async def create_order(
         shipping_address=order_data.shipping_address.dict(),
         customer_note=order_data.customer_note,
         status=OrderStatus.PENDING,
-        created_at=datetime.now(timezone.utc)()
+        created_at=datetime.now(timezone.utc)
     )
     
     db.add(order)
@@ -110,7 +110,7 @@ async def create_order(
     await db.commit()
     await db.refresh(order)
     
-    return OrderResponse.from_orm(order)
+    return OrderResponse.model_validate(order)
 
 
 @router.get(
@@ -172,7 +172,7 @@ async def list_orders(
     orders = result.scalars().all()
     
     # 转换为响应模型
-    items = [OrderResponse.from_orm(o) for o in orders]
+    items = [OrderResponse.model_validate(o) for o in orders]
     
     return OrderListResponse(
         items=items,
@@ -216,7 +216,7 @@ async def get_order(
             detail="Order not found"
         )
     
-    return OrderResponse.from_orm(order)
+    return OrderResponse.model_validate(order)
 
 
 @router.put(
@@ -269,24 +269,24 @@ async def update_order_status(
     
     # 更新时间戳
     if new_status == OrderStatus.PAID:
-        order.paid_at = datetime.now(timezone.utc)()
+        order.paid_at = datetime.now(timezone.utc)
     elif new_status == OrderStatus.SHIPPED:
-        order.shipped_at = datetime.now(timezone.utc)()
+        order.shipped_at = datetime.now(timezone.utc)
         if status_update.tracking_number:
             order.tracking_number = status_update.tracking_number
     elif new_status == OrderStatus.COMPLETED:
-        order.completed_at = datetime.now(timezone.utc)()
+        order.completed_at = datetime.now(timezone.utc)
     
     # 更新备注
     if status_update.farmer_note:
         order.farmer_note = status_update.farmer_note
     
-    order.updated_at = datetime.now(timezone.utc)()
+    order.updated_at = datetime.now(timezone.utc)
     
     await db.commit()
     await db.refresh(order)
     
-    return OrderResponse.from_orm(order)
+    return OrderResponse.model_validate(order)
 
 
 @router.get(
