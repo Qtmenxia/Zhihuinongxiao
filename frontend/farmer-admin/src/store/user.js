@@ -29,10 +29,10 @@ export const useUserStore = defineStore('user', () => {
       const res = await login(loginForm)
       token.value = res.data.token
       localStorage.setItem('token', res.data.token)
-      
+
       // 获取用户信息
       await fetchUserInfo()
-      
+
       ElMessage.success('登录成功')
       return true
     } catch (error) {

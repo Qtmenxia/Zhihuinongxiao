@@ -6,7 +6,7 @@ import asyncio
 import uuid
 import logging
 from typing import Optional, Dict
-from datetime import datetime
+from datetime import datetime,timezone
 from pathlib import Path
 
 from backend.mcpybarra_core.framework.mcp_swe_flow.graph import create_mcp_swe_workflow
@@ -93,7 +93,7 @@ class ServiceManager:
                 original_requirement=user_input,
                 model_used=model_name,
                 status=ServiceStatus.GENERATING,
-                created_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc)
             )
             db.add(service)
             
@@ -128,7 +128,7 @@ class ServiceManager:
             initial_state: 初始状态
             request_id: 请求追踪ID
         """
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         logger.info(f"[{request_id}] Starting MCPybarra workflow for {task_id}")
         
         try:
@@ -147,7 +147,7 @@ class ServiceManager:
             cost = self._calculate_cost_from_result(result)
             
             # 计算耗时
-            generation_time = int((datetime.utcnow() - start_time).total_seconds())
+            generation_time = int((datetime.now(timezone.utc) - start_time).total_seconds())
             
             # 提取质量评分
             quality_score = self._extract_quality_score(result)
@@ -168,7 +168,7 @@ class ServiceManager:
                 service.generation_cost = cost
                 service.generation_time = generation_time
                 service.quality_score = quality_score
-                service.updated_at = datetime.utcnow()
+                service.updated_at = datetime.now(timezone.utc)
                 
                 await db.commit()
                 logger.info(f"[{request_id}] Workflow completed for {task_id}")
@@ -187,7 +187,7 @@ class ServiceManager:
                 service = svc_result.scalar_one()
                 
                 service.status = ServiceStatus.FAILED
-                service.updated_at = datetime.utcnow()
+                service.updated_at = datetime.now(timezone.utc)
                 
                 await db.commit()
             
@@ -246,7 +246,7 @@ class ServiceManager:
                 return {"progress": 0, "current_stage": "unknown", "message": "Not generating"}
             
             # 估算进度（基于时间）
-            elapsed = (datetime.utcnow() - service.created_at).total_seconds()
+            elapsed = (datetime.now(timezone.utc) - service.created_at).total_seconds()
             estimated_total = 300  # 假设5分钟
             progress = min(int((elapsed / estimated_total) * 100), 95)
             

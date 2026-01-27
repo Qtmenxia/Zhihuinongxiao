@@ -121,6 +121,30 @@ const routes = [
     ]
   },
   {
+    path: '/customer',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        name: 'CustomerList',
+        component: () => import('@/views/customer/list.vue'),
+        meta: { title: '客户管理', icon: 'User' }
+      }
+    ]
+  },
+  {
+    path: '/traceability',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        name: 'Traceability',
+        component: () => import('@/views/traceability/index.vue'),
+        meta: { title: '溯源管理', icon: 'Connection' }
+      }
+    ]
+  },
+  {
     path: '/settings',
     component: Layout,
     children: [
@@ -129,6 +153,18 @@ const routes = [
         name: 'Settings',
         component: () => import('@/views/settings/index.vue'),
         meta: { title: '系统设置', icon: 'Setting' }
+      }
+    ]
+  },
+  {
+    path: '/help',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        name: 'Help',
+        component: () => import('@/views/help/index.vue'),
+        meta: { title: '帮助中心', icon: 'QuestionFilled' }
       }
     ]
   },
@@ -151,13 +187,13 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   NProgress.start()
-  
+
   // 设置页面标题
   document.title = to.meta.title ? `${to.meta.title} - 智农链销` : '智农链销'
-  
+
   // 检查登录状态
   const token = localStorage.getItem('token')
-  
+
   if (to.path === '/login') {
     next()
   } else if (!token) {

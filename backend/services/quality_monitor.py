@@ -4,7 +4,7 @@
 """
 import logging
 from typing import Optional, Dict, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import numpy as np
 
 from backend.database.connection import AsyncSessionLocal
@@ -46,7 +46,7 @@ class QualityMonitor:
         """
         # 解析时间窗口
         window_seconds = self._parse_time_window(window)
-        start_time = datetime.utcnow() - timedelta(seconds=window_seconds)
+        start_time = datetime.now(timezone.utc) - timedelta(seconds=window_seconds)
         
         async with AsyncSessionLocal() as db:
             from sqlalchemy import select, and_
@@ -95,7 +95,7 @@ class QualityMonitor:
                 "qps": round(qps, 2),
                 "success_count": total_requests - len(errors),
                 "error_count": len(errors),
-                "collected_at": datetime.utcnow().isoformat()
+                "collected_at": datetime.now(timezone.utc).isoformat()
             }
             
             # 缓存结果
@@ -224,7 +224,7 @@ class QualityMonitor:
 **服务ID**: {service_id}  
 **生成时间**: {service.created_at.strftime('%Y-%m-%d %H:%M:%S')}  
 **统计周期**: {window}  
-**报告生成时间**: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}
+**报告生成时间**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}
 
 ---
 

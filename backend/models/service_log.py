@@ -4,7 +4,7 @@
 from sqlalchemy import Column, String, Float, JSON, ForeignKey, Text, DateTime
 from sqlalchemy.orm import relationship
 from backend.models.base import Base
-from datetime import datetime
+from datetime import datetime,timezone
 
 
 class ServiceLog(Base):
@@ -29,7 +29,7 @@ class ServiceLog(Base):
     user_ip = Column(String(50))
     
     # 时间戳
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False, index=True)
     
     # 关联
     service = relationship("MCPService", back_populates="logs")
