@@ -92,6 +92,8 @@ class ServiceDetail(BaseModel):
     # 时间戳
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
     
     class Config:
         from_attributes = True
