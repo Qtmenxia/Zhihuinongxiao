@@ -460,6 +460,24 @@ async def stop_service(
             detail=f"Failed to stop service: {str(e)}"
         )
 
+@router.post("/generate-product-service")
+async def generate_product_service(
+    product_info: dict,
+    service_type: str = "full",
+    model: Optional[str] = None,
+    current_user: Farmer = Depends(get_current_user),
+    request: Request = None
+):
+    """为产品生成MCP服务"""
+    service_manager = ServiceManager()
+    task_id = await service_manager.generate_product_service(
+        farmer_id=current_user.id,
+        product_info=product_info,
+        service_type=service_type,
+        model=model,
+        request_id=request.state.request_id if request else None
+    )
+    return {"task_id": task_id, "message": "服务生成已启动"}
 
 @router.delete(
     "/{service_id}",

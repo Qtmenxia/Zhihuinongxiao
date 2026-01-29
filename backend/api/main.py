@@ -14,7 +14,8 @@ from backend.api.routers import (
     farmer_management,
     product_management,
     order_management,
-    statistics
+    statistics,
+    deploy_service,
 )
 from backend.api.middleware.auth import AuthMiddleware
 from backend.api.middleware.logging import LoggingMiddleware
@@ -190,6 +191,12 @@ app.include_router(
     statistics.router,
     prefix=f"{settings.API_PREFIX}/statistics",
     tags=["数据统计"]
+)
+
+app.include_router(
+    deploy_service.router,
+    prefix=f"{settings.API_PREFIX}",
+    tags=["服务部署"]  
 )
 
 
