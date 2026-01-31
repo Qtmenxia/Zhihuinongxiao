@@ -136,3 +136,39 @@ class ServiceDeploymentRequest(BaseModel):
     stock: int = Field(..., ge=0, description="库存数量", example=100)
     description: Optional[str] = Field(None, description="产品描述", example="香甜多汁的梨子，非常适合夏季解渴。")
     certifications: Optional[List[str]] = Field(None, description="认证列表", example=["有机认证"])
+
+from typing import Optional, List
+from pydantic import BaseModel, Field
+
+# ... 现有内容 ...
+
+class ServiceDeploymentRequest(BaseModel):
+    """服务部署请求（产品信息）"""
+    name: str = Field(..., description="产品名称", example="玉露香梨")
+    category: str = Field(..., description="产品品类", example="水果")
+    price: float = Field(..., gt=0, description="产品价格", example=5.0)
+    origin: Optional[str] = Field(None, description="产地", example="山西省蒲县")
+    stock: int = Field(..., ge=0, description="库存数量", example=100)
+    description: Optional[str] = Field(None, description="产品描述")
+    certifications: Optional[List[str]] = Field(None, description="认证列表")
+
+
+class DeploymentResponse(BaseModel):
+    """服务部署响应"""
+    service_id: str = Field(..., description="服务ID")
+    status: str = Field(..., description="部署状态")
+    endpoints: List[str] = Field(default=[], description="服务端点列表")
+    message: str = Field(..., description="状态消息")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "service_id": "service_farmer123_abc12345",
+                "status": "deployed",
+                "endpoints": [
+                    "http://localhost:8080/products",
+                    "http://localhost:8080/orders"
+                ],
+                "message": "Service deployed successfully"
+            }
+        }

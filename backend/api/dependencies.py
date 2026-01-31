@@ -2,17 +2,22 @@
 FastAPI依赖注入
 提供通用的依赖项，如数据库会话、当前用户等
 """
-from fastapi import Depends, HTTPException, status, Header
+from fastapi import Depends, HTTPException, status, Header,Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from typing import Optional, AsyncGenerator
 import jwt
 from datetime import datetime, timedelta, timezone
+from sqlalchemy import select
+import uuid
+from typing import Optional
 
-from backend.database.connection import get_db, get_async_db
+from backend.database.connection import AsyncSessionLocal
+from backend.models.farmer import Farmer, FarmerTier
 from backend.config.settings import settings
-from backend.models.farmer import Farmer
+from backend.database.connection import get_db, get_async_db
+
 
 # JWT认证方案
 security = HTTPBearer()
@@ -313,3 +318,83 @@ async def get_request_id(x_request_id: Optional[str] = Header(None)) -> str:
         str: 请求ID
     """
     return x_request_id if x_request_id else str(uuid.uuid4())
+
+async def get_session() -> AsyncSession:
+    """获取数据库会话"""
+    async with AsyncSessionLocal() as session:
+        yield session
+
+
+async def get_current_farmer(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_session)
+) -> Farmer:
+    """获取当前认证农户"""
+    try:
+        payload = jwt.decode(
+            credentials.credentials,
+            settings.JWT_SECRET,
+            algorithms=[settings.JWT_ALGORITHM]
+        )
+        farmer_id = payload.get("sub")
+        if not farmer_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="无效的认证令牌"
+            )
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="认证令牌已过期或无效"
+        )
+    
+    result = await db.execute(select(Farmer).where(Farmer.id == farmer_id))
+    farmer = result.scalar_one_or_none()
+    
+    if not farmer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="农户不存在"
+        )
+    
+    return farmer
+
+
+def check_service_quota(required_quota: int = 1):
+    """
+    检查服务配额的依赖工厂
+    
+    Args:
+        required_quota: 需要的配额数量
+    """
+    async def _check_quota(
+        current_farmer: Farmer = Depends(get_current_farmer)
+    ) -> Farmer:
+        # 根据农户等级设置配额限制
+        quota_limits = {
+            FarmerTier.FREE: 3,
+            FarmerTier.BASIC: 20,
+            FarmerTier.PRO: 100,
+            FarmerTier.ENTERPRISE: 1000
+        }
+        
+        max_services = quota_limits.get(current_farmer.tier, 3)
+        
+        if current_farmer.services_count + required_quota > max_services:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"服务配额已满。当前等级 {current_farmer.tier.value} 最多可创建 {max_services} 个服务，"
+                       f"已创建 {current_farmer.services_count} 个。请升级套餐。"
+            )
+        
+        return current_farmer
+    
+    return _check_quota
+
+
+def get_request_id(request: Request) -> str:
+    """获取或生成请求ID"""
+    request_id = request.headers.get("X-Request-ID")
+    if not request_id:
+        request_id = str(uuid.uuid4())[:8]
+    return request_id

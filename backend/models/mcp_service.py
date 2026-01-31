@@ -5,16 +5,20 @@ from sqlalchemy import Column, String, Integer, Float, JSON, ForeignKey, Text, E
 from sqlalchemy.orm import relationship
 from backend.models.base import Base, TimestampMixin
 import enum
+from sqlalchemy import Column, String, Integer, Float, Text, Boolean, DateTime, Enum, JSON
+from datetime import datetime, timezone
+
+from backend.models.base import Base
 
 
 class ServiceStatus(str, enum.Enum):
     """服务状态"""
-    GENERATING = "generating"
-    TESTING = "testing"
-    READY = "ready"
-    DEPLOYED = "deployed"
-    FAILED = "failed"
-    ARCHIVED = "archived"
+    GENERATING = "generating"   # 生成中
+    TESTING = "testing"         # 测试中
+    READY = "ready"             # 已就绪
+    DEPLOYED = "deployed"       # 已部署
+    FAILED = "failed"           # 失败
+    ARCHIVED = "archived"       # 已归档
 
 
 class MCPService(Base, TimestampMixin):
@@ -49,11 +53,20 @@ class MCPService(Base, TimestampMixin):
     is_deployed = Column(Boolean, default=False, index=True)
     deployed_at = Column(DateTime)
     endpoints = Column(JSON)
+    deploy_port = Column(Integer)        # 部署端口
     
     # 运行统计
     total_calls = Column(Integer, default=0)
     total_errors = Column(Integer, default=0)
     avg_latency = Column(Float)
+    
+     # 调用统计
+    call_count = Column(Integer, default=0)
+    last_called_at = Column(DateTime)
+
+    # 时间戳
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, onupdate=lambda: datetime.now(timezone.utc))
     
     # 优化历史
     refinement_count = Column(Integer, default=0)

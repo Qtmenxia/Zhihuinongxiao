@@ -605,3 +605,6 @@ class ServiceManager:
             })
         except Exception as e:
             logger.warning(f"WebSocket notification failed: {e}")
+
+# 导出供其他模块使用
+__all__ = ["ServiceManager", "PromptBuilder", "MockCompiledWorkflow"]
