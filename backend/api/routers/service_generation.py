@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
-from datetime import datetime, timezone
+from datetime import datetime
 import logging
 
 from backend.api.dependencies import (
@@ -381,7 +381,7 @@ async def deploy_service(
         
         # 更新数据库
         service.is_deployed = True
-        service.deployed_at = datetime.now(timezone.utc)
+        service.deployed_at = datetime.utcnow()
         service.endpoints = deployment_result["endpoints"]
         await db.commit()
         
@@ -460,24 +460,6 @@ async def stop_service(
             detail=f"Failed to stop service: {str(e)}"
         )
 
-@router.post("/generate-product-service")
-async def generate_product_service(
-    product_info: dict,
-    service_type: str = "full",
-    model: Optional[str] = None,
-    current_user: Farmer = Depends(get_current_user),
-    request: Request = None
-):
-    """为产品生成MCP服务"""
-    service_manager = ServiceManager()
-    task_id = await service_manager.generate_product_service(
-        farmer_id=current_user.id,
-        product_info=product_info,
-        service_type=service_type,
-        model=model,
-        request_id=request.state.request_id if request else None
-    )
-    return {"task_id": task_id, "message": "服务生成已启动"}
 
 @router.delete(
     "/{service_id}",
@@ -645,25 +627,25 @@ async def call_service_tool(
     
     try:
         # 调用服务
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.utcnow()
         result = await deployment_service.call_service_tool(
             service_id=service_id,
             tool_name=tool_name,
             params=params
         )
-        latency = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
+        latency = (datetime.utcnow() - start_time).total_seconds() * 1000
         
         # 记录日志
         from backend.models.service_log import ServiceLog
         log_entry = ServiceLog(
-            id=f"log_{service_id}_{datetime.now(timezone.utc).timestamp()}",
+            id=f"log_{service_id}_{datetime.utcnow().timestamp()}",
             service_id=service_id,
             tool_name=tool_name,
             input_params=params,
             output_result=str(result),
             latency=latency,
             status="success",
-            created_at=datetime.now(timezone.utc)
+            created_at=datetime.utcnow()
         )
         db.add(log_entry)
         
@@ -683,13 +665,13 @@ async def call_service_tool(
         # 记录错误日志
         from backend.models.service_log import ServiceLog
         log_entry = ServiceLog(
-            id=f"log_{service_id}_{datetime.now(timezone.utc).timestamp()}",
+            id=f"log_{service_id}_{datetime.utcnow().timestamp()}",
             service_id=service_id,
             tool_name=tool_name,
             input_params=params,
             status="error",
             error_message=str(e),
-            created_at=datetime.now(timezone.utc)
+            created_at=datetime.utcnow()
         )
         db.add(log_entry)
         

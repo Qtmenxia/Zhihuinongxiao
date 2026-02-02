@@ -1,7 +1,7 @@
 """
 服务相关的Pydantic数据模型
 """
-from pydantic import BaseModel, Field, field_validator, model_validator,ConfigDict
+from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 from datetime import datetime
 
@@ -26,12 +26,76 @@ class ServiceGenerationRequest(BaseModel):
         example="gemini-2.5-pro"
     )
     
-    @field_validator('requirement')
-    @classmethod
+    @validator('requirement')
     def requirement_must_be_detailed(cls, v):
         if len(v.strip()) < 10:
             raise ValueError('需求描述过于简短，请提供更详细的说明')
         return v.strip()
+
+
+class ServiceDeploymentRequest(BaseModel):
+    """
+    服务部署请求（产品信息）
+    农户通过此接口提交产品信息，自动生成并部署MCP服务
+    """
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="产品名称",
+        example="玉露香梨"
+    )
+    category: str = Field(
+        ...,
+        description="产品品类",
+        example="水果"
+    )
+    price: float = Field(
+        ...,
+        gt=0,
+        description="产品单价（元）",
+        example=12.8
+    )
+    stock: int = Field(
+        ...,
+        ge=0,
+        description="库存数量",
+        example=1000
+    )
+    origin: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="产地",
+        example="山西省蒲县"
+    )
+    description: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="产品描述",
+        example="果肉细腻，汁多味甜，山西特产有机水果"
+    )
+    certifications: Optional[List[str]] = Field(
+        None,
+        description="认证列表",
+        example=["有机认证", "绿色食品"]
+    )
+    service_type: Optional[str] = Field(
+        "full",
+        description="服务类型: full(完整)/query(查询)/order(订单)/traceability(溯源)",
+        example="full"
+    )
+    model: Optional[str] = Field(
+        None,
+        description="指定LLM模型（可选）",
+        example="gpt-4o"
+    )
+    
+    @validator('service_type')
+    def validate_service_type(cls, v):
+        allowed = ["full", "query", "order", "traceability"]
+        if v and v not in allowed:
+            raise ValueError(f"service_type必须是以下之一: {allowed}")
+        return v or "full"
 
 
 class ServiceGenerationResponse(BaseModel):
@@ -92,8 +156,6 @@ class ServiceDetail(BaseModel):
     # 时间戳
     created_at: datetime
     updated_at: Optional[datetime] = None
-
-    model_config = ConfigDict(from_attributes=True)
     
     class Config:
         from_attributes = True
@@ -126,49 +188,3 @@ class DeploymentResponse(BaseModel):
     status: str = Field(..., description="部署状态")
     endpoints: List[str] = Field(..., description="可用的API端点")
     message: str = Field(..., description="部署消息")
-
-class ServiceDeploymentRequest(BaseModel):
-    """服务部署请求（产品信息）"""
-    name: str = Field(..., description="产品名称", example="玉露香梨")
-    category: str = Field(..., description="产品品类", example="水果")
-    price: float = Field(..., gt=0, description="产品价格", example=5.0)
-    origin: Optional[str] = Field(None, description="产地", example="山西省蒲县")
-    stock: int = Field(..., ge=0, description="库存数量", example=100)
-    description: Optional[str] = Field(None, description="产品描述", example="香甜多汁的梨子，非常适合夏季解渴。")
-    certifications: Optional[List[str]] = Field(None, description="认证列表", example=["有机认证"])
-
-from typing import Optional, List
-from pydantic import BaseModel, Field
-
-# ... 现有内容 ...
-
-class ServiceDeploymentRequest(BaseModel):
-    """服务部署请求（产品信息）"""
-    name: str = Field(..., description="产品名称", example="玉露香梨")
-    category: str = Field(..., description="产品品类", example="水果")
-    price: float = Field(..., gt=0, description="产品价格", example=5.0)
-    origin: Optional[str] = Field(None, description="产地", example="山西省蒲县")
-    stock: int = Field(..., ge=0, description="库存数量", example=100)
-    description: Optional[str] = Field(None, description="产品描述")
-    certifications: Optional[List[str]] = Field(None, description="认证列表")
-
-
-class DeploymentResponse(BaseModel):
-    """服务部署响应"""
-    service_id: str = Field(..., description="服务ID")
-    status: str = Field(..., description="部署状态")
-    endpoints: List[str] = Field(default=[], description="服务端点列表")
-    message: str = Field(..., description="状态消息")
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "service_id": "service_farmer123_abc12345",
-                "status": "deployed",
-                "endpoints": [
-                    "http://localhost:8080/products",
-                    "http://localhost:8080/orders"
-                ],
-                "message": "Service deployed successfully"
-            }
-        }

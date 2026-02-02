@@ -7,7 +7,7 @@ from backend.api.routers import (
     product_management,
     order_management,
     statistics,
-    deploy_service,
+    deploy_service
 )
 
 __all__ = [
@@ -16,5 +16,5 @@ __all__ = [
     "product_management",
     "order_management",
     "statistics",
-    "deploy_service",
+    "deploy_service"
 ]

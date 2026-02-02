@@ -15,7 +15,7 @@ from backend.api.routers import (
     product_management,
     order_management,
     statistics,
-    deploy_service,
+    deploy_service
 )
 from backend.api.middleware.auth import AuthMiddleware
 from backend.api.middleware.logging import LoggingMiddleware
@@ -195,8 +195,8 @@ app.include_router(
 
 app.include_router(
     deploy_service.router,
-    prefix=f"{settings.API_PREFIX}",
-    tags=["服务部署"]  
+    prefix=f"{settings.API_PREFIX}/deploy",
+    tags=["服务部署"]
 )
 
 
