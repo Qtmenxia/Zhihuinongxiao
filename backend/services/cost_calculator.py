@@ -57,7 +57,8 @@ class CostCalculator:
         try:
             config = get_provider_config(model)
             return config is not None
-        except:
+        except Exception as e:
+            logger.error(f"Error validating model {model}: {e}")
             return False
     
     def estimate_generation_cost(

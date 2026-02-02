@@ -1,6 +1,70 @@
 """
 蒲县产品标准配置(基于附件数据)
+
+图片资源说明：
+================
+图片文件应放置在以下位置：
+
+【开发环境】
+  项目根目录/static/images/
+  ├── products/           # 产品图片
+  │   ├── ylx-158-1.jpg   # 玉露香梨礼盒图1
+  │   ├── ylx-158-2.jpg   # 玉露香梨礼盒图2
+  │   ├── wns-158-1.jpg   # 维纳斯苹果礼盒
+  │   └── ...
+  ├── farm/               # 农场照片
+  │   ├── overview.jpg    # 果园全景
+  │   └── organic-cert.jpg
+  ├── process/            # 种植流程图
+  │   ├── fertilization.jpg
+  │   └── harvest.jpg
+  └── reports/            # 质检报告
+      └── quality-report.pdf
+
+【生产环境】
+  使用阿里云OSS存储，配置 .env 文件：
+  OSS_BUCKET=zhinong-assets
+  OSS_ENDPOINT=oss-cn-beijing.aliyuncs.com
+
+  图片上传到OSS后，保持相同的目录结构即可。
+
+【使用方法】
+  from backend.config.product_config import get_image_url
+  
+  # 获取产品图片完整URL
+  url = get_image_url("products/ylx-158-1.jpg")
+  # 开发环境返回: /static/images/products/ylx-158-1.jpg
+  # 生产环境返回: https://zhinong-assets.oss-cn-beijing.aliyuncs.com/products/ylx-158-1.jpg
 """
+import os
+from backend.config.settings import settings
+
+
+def get_image_base_url() -> str:
+    """
+    获取图片基础URL
+    - 开发环境返回本地路径
+    - 生产环境返回OSS路径
+    """
+    if settings.DEBUG:
+        return "/static/images"
+    else:
+        return f"https://{settings.OSS_BUCKET}.{settings.OSS_ENDPOINT}"
+
+
+def get_image_url(path: str) -> str:
+    """
+    获取完整图片URL
+    
+    Args:
+        path: 相对路径，如 "products/ylx-158-1.jpg"
+    
+    Returns:
+        str: 完整的图片URL
+    """
+    base = get_image_base_url()
+    return f"{base}/{path}"
+
 
 # 产品目录配置
 PRODUCT_CATALOG = {
@@ -25,8 +89,8 @@ PRODUCT_CATALOG = {
                 "target_scene": "送礼/节日",
                 "packaging": "天地盖礼盒",
                 "images": [
-                    "https://cdn.example.com/products/ylx-158-1.jpg",
-                    "https://cdn.example.com/products/ylx-158-2.jpg"
+                    "products/ylx-158-1.jpg",
+                    "products/ylx-158-2.jpg"
                 ],
                 "stock": 100
             },
@@ -42,6 +106,9 @@ PRODUCT_CATALOG = {
                 "original_price": 158,
                 "target_scene": "送礼",
                 "packaging": "精品礼盒",
+                "images": [
+                    "products/ylx-128-1.jpg"
+                ],
                 "stock": 150
             },
             {
@@ -55,6 +122,9 @@ PRODUCT_CATALOG = {
                 "price": 79,
                 "target_scene": "引流/家庭装",
                 "packaging": "手提礼盒",
+                "images": [
+                    "products/ylx-79-1.jpg"
+                ],
                 "stock": 200
             }
         ]
@@ -79,6 +149,9 @@ PRODUCT_CATALOG = {
                 "price": 158,
                 "target_scene": "送礼",
                 "packaging": "天地盖礼盒",
+                "images": [
+                    "products/wns-158-1.jpg"
+                ],
                 "stock": 80
             },
             {
@@ -92,6 +165,9 @@ PRODUCT_CATALOG = {
                 "price": 128,
                 "target_scene": "送礼",
                 "packaging": "精品礼盒",
+                "images": [
+                    "products/wns-128-1.jpg"
+                ],
                 "stock": 100
             },
             {
@@ -105,6 +181,9 @@ PRODUCT_CATALOG = {
                 "price": 79,
                 "target_scene": "日常消费",
                 "packaging": "对开箱",
+                "images": [
+                    "products/wns-79-1.jpg"
+                ],
                 "stock": 150
             }
         ]
@@ -125,6 +204,9 @@ PRODUCT_CATALOG = {
                 "price": 68,
                 "target_scene": "零食/伴手礼",
                 "shelf_life": "12个月",
+                "images": [
+                    "products/pg-68-1.jpg"
+                ],
                 "stock": 300
             },
             {
@@ -137,6 +219,9 @@ PRODUCT_CATALOG = {
                 "price": 158,
                 "target_scene": "健康饮品",
                 "shelf_life": "18个月",
+                "images": [
+                    "products/ylx-ju-158-1.jpg"
+                ],
                 "stock": 200
             },
             {
@@ -149,6 +234,9 @@ PRODUCT_CATALOG = {
                 "price": 88,
                 "target_scene": "健康零食",
                 "shelf_life": "12个月",
+                "images": [
+                    "products/pg-88-1.jpg"
+                ],
                 "stock": 250
             }
         ]
@@ -210,8 +298,8 @@ TRACEABILITY_TEMPLATE = {
         "certification": "有机认证编号：XXXXXX",
         "tech_support": "中国农业大学科技小院",
         "images": [
-            "https://cdn.example.com/farm/overview.jpg",
-            "https://cdn.example.com/farm/organic-cert.jpg"
+            "farm/overview.jpg",
+            "farm/organic-cert.jpg"
         ]
     },
     "cultivation_process": [
@@ -219,29 +307,29 @@ TRACEABILITY_TEMPLATE = {
             "stage": "春季施肥",
             "date": "3月",
             "description": "施用有机肥，改良土壤",
-            "image": "https://cdn.example.com/process/fertilization.jpg"
+            "image": "process/fertilization.jpg"
         },
         {
             "stage": "花期管理",
             "date": "4月",
             "description": "人工授粉，疏花疏果",
-            "image": "https://cdn.example.com/process/pollination.jpg"
+            "image": "process/pollination.jpg"
         },
         {
             "stage": "绿色防控",
             "date": "5-8月",
             "description": "物理防治+生物防治，不使用化学农药",
-            "image": "https://cdn.example.com/process/pest-control.jpg"
+            "image": "process/pest-control.jpg"
         },
         {
             "stage": "采摘包装",
             "date": "9-10月",
             "description": "人工采摘，当日包装发货",
-            "image": "https://cdn.example.com/process/harvest.jpg"
+            "image": "process/harvest.jpg"
         }
     ],
     "quality_inspection": {
         "items": ["农药残留检测", "重金属检测", "糖度检测"],
-        "report_url": "https://cdn.example.com/quality-report.pdf"
+        "report_url": "reports/quality-report.pdf"
     }
 }
