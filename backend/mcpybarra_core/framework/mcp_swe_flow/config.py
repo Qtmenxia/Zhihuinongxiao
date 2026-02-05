@@ -24,6 +24,38 @@ DEFAULT_TEST_REPORT_DIR = PROJECT_ROOT / "workspace/server-test-report"
 # Maps model names to their provider configuration.
 # The key is a regex pattern to match the start of a model name.
 MODEL_CONFIG = {
+    # ====== OpenRouter Provider (优先匹配，支持多种模型) ======
+    # OpenRouter 模型命名格式: openrouter/provider/model
+    # 例如: openrouter/anthropic/claude-3.5-sonnet, openrouter/openai/gpt-4o
+    r"^openrouter/": {
+        "provider": "openrouter",
+        "env_prefix": "OPENROUTER",
+        "costs": {
+            # Anthropic models via OpenRouter
+            "openrouter/anthropic/claude-3.5-sonnet": {"prompt": 0.000003, "completion": 0.000015},
+            "openrouter/anthropic/claude-3-opus": {"prompt": 0.000015, "completion": 0.000075},
+            "openrouter/anthropic/claude-3-haiku": {"prompt": 0.00000025, "completion": 0.00000125},
+            # OpenAI models via OpenRouter
+            "openrouter/openai/gpt-4o": {"prompt": 0.000005, "completion": 0.000015},
+            "openrouter/openai/gpt-4o-mini": {"prompt": 0.00000015, "completion": 0.0000006},
+            "openrouter/openai/gpt-4-turbo": {"prompt": 0.00001, "completion": 0.00003},
+            # Google models via OpenRouter
+            "openrouter/google/gemini-2.0-flash-exp": {"prompt": 0.0, "completion": 0.0},
+            "openrouter/google/gemini-pro-1.5": {"prompt": 0.00000125, "completion": 0.000005},
+            # DeepSeek models via OpenRouter
+            "openrouter/deepseek/deepseek-chat": {"prompt": 0.00000014, "completion": 0.00000028},
+            "openrouter/deepseek/deepseek-r1": {"prompt": 0.00000055, "completion": 0.00000219},
+            # Meta Llama models via OpenRouter
+            "openrouter/meta-llama/llama-3.1-405b-instruct": {"prompt": 0.000003, "completion": 0.000003},
+            "openrouter/meta-llama/llama-3.1-70b-instruct": {"prompt": 0.00000052, "completion": 0.00000075},
+            # Qwen models via OpenRouter
+            "openrouter/qwen/qwen-2.5-72b-instruct": {"prompt": 0.00000035, "completion": 0.0000004},
+            # Mistral models via OpenRouter
+            "openrouter/mistralai/mistral-large": {"prompt": 0.000002, "completion": 0.000006},
+            "default": {"prompt": 0.000002, "completion": 0.000006}
+        }
+    },
+    
     # Qwen models via Dashscope
     r"^(qwen|deepseek)-": {
         "provider": "qwen",
@@ -221,11 +253,26 @@ def get_llm_for_agent(agent_name: str, model_override: Optional[str] = None) -> 
     token_handler = TokenCounterHandler(agent_name)
     
     try:
-        # 根据不同的提供商设置不同的extra_body
+        # 根据不同的提供商设置不同的extra_body和default_headers
         extra_body = {}
+        default_headers = {}
+        
+        # OpenRouter 特有配置
+        if provider_config['provider'] == 'openrouter':
+            # OpenRouter 需要额外的 HTTP 头用于追踪和识别
+            site_url = os.getenv("OPENROUTER_SITE_URL", "https://zhinonglianxiao.com")
+            site_name = os.getenv("OPENROUTER_SITE_NAME", "智农链销")
+            default_headers = {
+                "HTTP-Referer": site_url,
+                "X-Title": site_name,
+            }
+            # OpenRouter 支持的额外参数
+            openrouter_transforms = os.getenv("OPENROUTER_TRANSFORMS", "")
+            if openrouter_transforms:
+                extra_body["transforms"] = openrouter_transforms.split(",")
         
         # Gemini模型特有的thinking配置
-        if provider_config['provider'] == 'gemini':
+        elif provider_config['provider'] == 'gemini':
             extra_body = {
                 "extra_body":{
                 "google": {
@@ -252,7 +299,8 @@ def get_llm_for_agent(agent_name: str, model_override: Optional[str] = None) -> 
             temperature=llm_temperature,
             callbacks=[token_handler],
             request_timeout=6000, # 设置为无超时
-            extra_body=extra_body
+            default_headers=default_headers if default_headers else None,
+            extra_body=extra_body if extra_body else None
         )
         logger.info(f"Created LLM instance for agent '{agent_name}' with model '{model_name}' via provider '{provider_config['provider']}'.")
         return agent_llm

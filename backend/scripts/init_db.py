@@ -75,7 +75,7 @@ async def create_demo_farmer():
             is_verified=True,
             certification_type="有机认证",
             tier=FarmerTier.BASIC,
-            subscription_start=datetime.now(timezone.utc)(),
+            subscription_start=datetime.now(timezone.utc),
             services_count=0,
             api_calls_today=0
         )
@@ -123,7 +123,7 @@ async def init_products(farmer_id: str):
                     origin=product_info.get("origin", "山西蒲县"),
                     certification=product_info.get("certification"),
                     is_active=True,
-                    created_at=datetime.now(timezone.utc)()
+                    created_at=datetime.now(timezone.utc)
                 )
                 session.add(product)
         

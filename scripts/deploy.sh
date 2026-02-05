@@ -73,7 +73,7 @@ echo ""
 
 # 11. 健康检查
 echo "🏥 执行健康检查..."
-if curl -f http://localhost:8000/health >务健康"
+if curl -f http://localhost:8000/health >服务健康"
 else
     echo "❌ API服务未就绪，请检查日志"
     docker-compose logs api

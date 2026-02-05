@@ -51,7 +51,13 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: Optional[str] = None
     QWEN_API_KEY: Optional[str] = None
     
-    # 默认使用的模型
+    # OpenRouter配置 (支持多种模型的统一API)
+    OPENROUTER_API_KEY: Optional[str] = None
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+    OPENROUTER_SITE_URL: str = "https://zhinonglianxiao.com"
+    OPENROUTER_SITE_NAME: str = "智农链销"
+    
+    # 默认使用的模型 (可以使用OpenRouter格式: openrouter/provider/model)
     DEFAULT_SWE_MODEL: str = "gemini-2.5-pro"
     
     # MCPybarra工作流参数（与config.py保持一致）
