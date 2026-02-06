@@ -58,7 +58,18 @@ class Settings(BaseSettings):
     OPENROUTER_SITE_NAME: str = "智农链销"
     
     # 默认使用的模型 (可以使用OpenRouter格式: openrouter/provider/model)
-    DEFAULT_SWE_MODEL: str = "gemini-2.5-pro"
+    DEFAULT_SWE_MODEL: str = "openrouter/anthropic/claude-3.5-sonnet"
+    
+    # Agent 模型配置（用于 MCPybarra 工作流）
+    SWE_AGENT_MODEL: Optional[str] = None
+    SERVER_TEST_AGENT_MODEL: Optional[str] = None
+    CODE_REFINER_AGENT_MODEL: Optional[str] = None
+    DEFAULT_AGENT_MODEL: Optional[str] = None
+    
+    # LLM 通用参数
+    LLM_MAX_TOKENS: int = 64000
+    LLM_TEMPERATURE: float = 0.6
+    LLM_ENABLE_THINKING: bool = False
     
     # MCPybarra工作流参数（与config.py保持一致）
     MAX_REFINE_LOOPS: int = 2
@@ -66,6 +77,9 @@ class Settings(BaseSettings):
     MAX_CODEGEN_TURNS: int = 5
     MAX_PLANNING_TOOL_CALLS: int = 2
     MAX_CODEGEN_TOOL_CALLS: int = 3
+    
+    #搜索： Tavily 配置 [必填](MCPyabarra需要)
+    TAVILY_API_KEY: str | None = None 
     
     # 文件存储配置
     WORKSPACE_DIR: str = "workspace"
@@ -128,6 +142,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
+    
 
 
 # 创建全局配置实例

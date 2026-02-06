@@ -4,7 +4,7 @@
 """
 from pydantic import BaseModel, Field, EmailStr, field_validator, model_validator,ConfigDict
 from typing import Optional
-from datetime import datetime
+from datetime import datetime,timezone
 from enum import Enum
 
 
@@ -269,3 +269,34 @@ class FarmerStatsResponse(BaseModel):
                 "total_api_calls": 3456
             }
         }
+
+class FarmerStatistics(BaseModel):
+    """农户详细统计信息响应"""
+    farmer_id: str
+    services_count: int
+    deployed_services: int
+    total_orders: int
+    total_revenue: float
+    total_cost: float
+    api_calls_today: int
+    api_calls_this_month: int
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "farmer_id": "farmer_puzhou_001",
+                "services_count": 5,
+                "deployed_services": 3,
+                "total_orders": 128,
+                "total_revenue": 15680.50,
+                "total_cost": 2.35,
+                "api_calls_today": 45,
+                "api_calls_this_month": 1350
+            }
+        }
+
+
+# 别名（向后兼容）
+FarmerRegister = FarmerRegisterRequest
+FarmerLogin = FarmerLoginRequest
+FarmerUpdate = FarmerUpdateRequest

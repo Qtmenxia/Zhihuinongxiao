@@ -1,35 +1,84 @@
 from pathlib import Path
 import os
+import json
+import yaml
 from jinja2 import Template
+from typing import Optional, Dict, Any, List
 
-# This will be framwork/mcp_swe_flow/prompts/utils.py
-# We need to calculate the project root relative to this file's location.
-# The path is MCPServer-Generator/framwork/mcp_swe_flow/prompts/utils.py
-# So we need to go up 4 levels.
+# 获取项目根目录
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-PROMPTS_DIR = PROJECT_ROOT / "framwork" / "mcp_swe_flow" / "prompts"
+PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
+
+# 尝试导入logger，如果失败使用标准logging
+try:
+    from logger import logger
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
+
+
+def find_api_file(resources_dir: Path, api_name: str) -> Optional[Path]:
+    """Find the OpenAPI file (YAML or JSON) for a given API name."""
+    api_dir = resources_dir / api_name
+    if not api_dir.is_dir():
+        logger.warning(f"API directory not found: {api_dir}")
+        return None
+    
+    for ext in ["*.yaml", "*.yml", "*.json"]:
+        files = list(api_dir.glob(ext))
+        if files:
+            return files[0]
+    return None
+
+
+def load_api_spec(file_path: Path) -> Optional[Dict[str, Any]]:
+    """Load API specification from a YAML or JSON file."""
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            if file_path.suffix in [".yaml", ".yml"]:
+                return yaml.safe_load(f)
+            else:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading API spec: {e}")
+        return None
+
+
+def load_mcp_doc(resources_dir: Path) -> Optional[str]:
+    """Load the MCP documentation content."""
+    mcp_doc_path = resources_dir / "mcp-server-doc.md"
+    if not mcp_doc_path.exists():
+        return None
+    try:
+        with open(mcp_doc_path, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception:
+        return None
+
+
+def read_file_content(file_path: Path) -> Optional[str]:
+    if not file_path.exists():
+        return None
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception:
+        return None
+
+
+def list_server_files(output_dir: Path) -> List[str]:
+    if not output_dir.exists():
+        return []
+    return [f.name for f in output_dir.glob("*.py")]
+
+
+def list_report_files(report_dir: Path) -> List[str]:
+    if not report_dir.exists():
+        return []
+    return [f.name for f in report_dir.glob("*.md")]
+
 
 def load_prompt(prompt_path: str) -> Template:
-    """
-    Loads a prompt from the specified path within the prompts directory
-    and returns it as a Jinja2 Template object.
-    
-    Args:
-        prompt_path: The relative path to the prompt file from the 'prompts' directory.
-                     e.g., 'swe_generator/api_spec_mode.prompt'
-        
-    Returns:
-        The content of the prompt file as a Jinja2 Template object.
-    """
     full_path = PROMPTS_DIR / prompt_path
-    try:
-        with open(full_path, 'r', encoding='utf-8') as f:
-            prompt_content = f.read()
-            return Template(prompt_content)
-    except FileNotFoundError:
-        # In a real app, you'd use a logger. For now, raising is clear.
-        print(f"Error: Prompt file not found at: {full_path}")
-        raise
-    except Exception as e:
-        print(f"Error reading prompt file at: {full_path}: {e}")
-        raise IOError(f"Error reading prompt file at: {full_path}: {e}") 
+    with open(full_path, 'r', encoding='utf-8') as f:
+        return Template(f.read())

@@ -15,6 +15,11 @@ import hashlib
 import secrets
 import logging
 
+# === 新增这段代码来修复 WinError 64 ===
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# ======================================
+
 from backend.database.connection import async_engine, AsyncSessionLocal
 from backend.models.base import Base
 from backend.models.farmer import Farmer, FarmerTier
@@ -59,7 +64,7 @@ async def create_demo_farmer():
         
         if existing:
             logger.info("Demo farmer already exists, skipping...")
-            return
+            return existing.id 
         
         # 创建演示账号
         demo_farmer = Farmer(
@@ -75,9 +80,13 @@ async def create_demo_farmer():
             is_verified=True,
             certification_type="有机认证",
             tier=FarmerTier.BASIC,
-            subscription_start=datetime.now(timezone.utc),
+            subscription_start=datetime.now(timezone.utc).replace(tzinfo=None),
             services_count=0,
-            api_calls_today=0
+            api_calls_today=0,
+            enable_commission=False, # 模型里可能有默认值，建议显式写上
+            commission_rate=5,       # 同上
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+            updated_at=datetime.now(timezone.utc).replace(tzinfo=None)
         )
         
         session.add(demo_farmer)
@@ -87,48 +96,60 @@ async def create_demo_farmer():
         return demo_farmer.id
 
 
-async def init_products(farmer_id: str):
+# 👇 这里的定义要加上 farmer_id 参数！
+async def init_products(farmer_id):
     """初始化产品数据"""
-    logger.info("Initializing products...")
+    print("Initializing products from catalog...")
     
-    if not farmer_id:
-        logger.warning("No farmer_id provided, skipping product initialization")
-        return
-    
+    # 在函数内部开启一个新的数据库会话
     async with AsyncSessionLocal() as session:
-        from sqlalchemy import select
+        count = 0
         
-        # 检查是否已有产品
-        result = await session.execute(
-            select(Product).where(Product.farmer_id == farmer_id)
-        )
-        if result.scalars().first():
-            logger.info("Products already exist, skipping...")
-            return
-        
-        # 添加预设产品
-        for category, products in PRODUCT_CATALOG.items():
-            for product_info in products:
+        # 遍历配置字典
+        for category_key, category_data in PRODUCT_CATALOG.items():
+            
+            # 获取类别通用信息
+            cat_name = category_data.get("category_name", category_key)
+            cat_desc = category_data.get("description", "")
+            origin = category_data.get("origin", "")
+            
+            # 获取该类别下的 SKU 列表
+            skus = category_data.get("skus", [])
+            
+            for sku_data in skus:
+                full_description = f"{cat_desc} 产地：{origin}"
+                
                 product = Product(
-                    id=f"prod_{secrets.token_hex(6)}",
-                    farmer_id=farmer_id,
-                    name=product_info["name"],
-                    category=category,
-                    sku=product_info.get("sku", ""),
-                    description=product_info.get("description", ""),
-                    price=product_info["price"],
-                    unit=product_info.get("unit", "盒"),
-                    stock=product_info.get("stock", 100),
-                    weight=product_info.get("weight"),
-                    origin=product_info.get("origin", "山西蒲县"),
-                    certification=product_info.get("certification"),
+                    id=f"prod_{secrets.token_hex(8)}",
+                    
+                    # 👇【关键修复】这里正确使用了传入的 farmer_id 参数
+                    # 之前报错是因为这里是 None，或者变量名写错了
+                    farmer_id=farmer_id,  
+                    
+                    name=sku_data["name"],
+                    sku_code=sku_data.get("sku_code", f"SKU_{secrets.token_hex(4).upper()}"),
+                    price=float(sku_data.get("price", 0)),
+                    stock=int(sku_data.get("stock", 0)),
+                    
+                    category=cat_name,
+                    description=full_description,
+                    specs=sku_data.get("specs", {}),
+                    images=sku_data.get("images", []),
+                    
                     is_active=True,
-                    created_at=datetime.now(timezone.utc)
+                    is_featured=False,
+                    
+                    # 依然保持去时区
+                    created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+                    updated_at=datetime.now(timezone.utc).replace(tzinfo=None)
                 )
+                
                 session.add(product)
+                count += 1
         
+        # 提交事务
         await session.commit()
-        logger.info(f"✅ Products initialized for farmer {farmer_id}")
+        print(f"✅ Successfully initialized {count} products from catalog.")
 
 
 async def main():

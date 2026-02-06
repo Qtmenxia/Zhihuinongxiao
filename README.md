@@ -440,4 +440,14 @@ zhinonglianxiao/
     ├── pipeline-output-servers/      # 生成的服务
     ├── refinement/                   # 优化过程
     └── server-test-report/           # 测试报告
+```
 
+# 数据库配置
+DATABASE_URL=postgresql://postgres:postgres@db:5432/zhinonglianxiao
+成功。你现在可以用下面的命令开启数据库服务器:
+
+    ^"E^:^\PostgreSQL^\18^\bin^\pg^_ctl^" -D ^"D^:^\Zhinonglianxiao^_completed^\Zhinonglianxiao^\db^" -l logfile start
+
+```powershell
+pg_ctl -D "D:\Zhinonglianxiao_completed\Zhinonglianxiao\db"
+```

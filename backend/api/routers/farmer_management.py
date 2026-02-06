@@ -14,11 +14,12 @@ from backend.api.dependencies import (
     create_access_token
 )
 from ..schemas.farmer import (
-    FarmerRegister,
-    FarmerLogin,
+    FarmerRegisterRequest,
+    FarmerLoginRequest,
     FarmerResponse,
-    FarmerUpdate,
+    FarmerUpdateRequest,
     FarmerLoginResponse,
+    FarmerStatsResponse,
     FarmerStatistics
 )
 from backend.models.farmer import Farmer, FarmerTier
@@ -35,7 +36,7 @@ router = APIRouter()
     description="创建新的农户账号"
 )
 async def register_farmer(
-    farmer_data: FarmerRegister,
+    farmer_data: FarmerRegisterRequest,
     db: AsyncSession = Depends(get_session)
 ):
     """
@@ -102,7 +103,7 @@ async def register_farmer(
     description="使用手机号和密码登录"
 )
 async def login_farmer(
-    login_data: FarmerLogin,
+    login_data: FarmerLoginRequest,
     db: AsyncSession = Depends(get_session)
 ):
     """
@@ -171,7 +172,7 @@ async def get_current_farmer_info(
     description="更新当前农户的个人信息"
 )
 async def update_farmer_info(
-    update_data: FarmerUpdate,
+    update_data: FarmerUpdateRequest,
     db: AsyncSession = Depends(get_session),
     current_farmer: Farmer = Depends(get_current_farmer)
 ):
