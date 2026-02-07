@@ -23,6 +23,11 @@ export function updateCustomer(id, data) {
   return request.put(`/customers/${id}`, data)
 }
 
+// 创建客户
+export function createCustomer(data) {
+  return request.post('/customers', data)
+}
+
 // 更新客户等级
 export function updateCustomerLevel(id, level) {
   return request.patch(`/customers/${id}/level`, { level })

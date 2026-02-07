@@ -27,8 +27,22 @@ export const useUserStore = defineStore('user', () => {
   async function doLogin(loginForm) {
     try {
       const res = await login(loginForm)
-      token.value = res.data.token
-      localStorage.setItem('token', res.data.token)
+
+      // 🔍 调试：建议在控制台打印一下，看看到底返回了什么
+      console.log('后端登录返回数据:', res)
+
+      // 🛠️ 修复点 1：字段名修正
+      // FastAPI 默认返回字段是 access_token，而不是 token
+      // 🛠️ 修复点 2：层级修正
+      // 如果拦截器已处理 response.data，则 res 就是数据本身，不需要再写 .data
+      const accessToken = res.access_token || res.token || res.data?.access_token || res.data?.token
+
+      if (!accessToken) {
+        throw new Error('登录响应中未找到 Token，请检查网络请求返回值')
+      }
+
+      token.value = accessToken
+      localStorage.setItem('token', accessToken)
 
       // 获取用户信息
       await fetchUserInfo()
@@ -36,10 +50,12 @@ export const useUserStore = defineStore('user', () => {
       ElMessage.success('登录成功')
       return true
     } catch (error) {
+      console.error('登录出错:', error)
       ElMessage.error(error.message || '登录失败')
       return false
     }
   }
+
 
   // 获取用户信息
   async function fetchUserInfo() {

@@ -8,6 +8,11 @@ export function getBatchList(params) {
   return request.get('/traceability/batches', { params })
 }
 
+// 获取溯源列表（别名）
+export function getTraceList(params) {
+  return request.get('/traceability/batches', { params })
+}
+
 // 获取批次详情
 export function getBatchDetail(id) {
   return request.get(`/traceability/batches/${id}`)

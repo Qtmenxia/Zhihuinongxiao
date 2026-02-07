@@ -341,7 +341,14 @@ python -m backend.scripts.init_db
 # 7. 启动API服务
 uvicorn backend.api.main:app --reload --host 0.0.0.0 --port 8000
 
-# 8. （可选）启动Worker进程（另一个终端）
+# 8.前端启动
+```powershell
+cd D:\Zhinonglianxiao_completed\Zhinonglianxiao\frontend\farmer-admin
+npm install
+npm run dev
+```
+
+# 9. （可选）启动Worker进程（另一个终端）
 python -m backend.scripts.worker_daemon
 前端启动（可选）
 # 1. 进入前端目录
@@ -449,5 +456,5 @@ DATABASE_URL=postgresql://postgres:postgres@db:5432/zhinonglianxiao
     ^"E^:^\PostgreSQL^\18^\bin^\pg^_ctl^" -D ^"D^:^\Zhinonglianxiao^_completed^\Zhinonglianxiao^\db^" -l logfile start
 
 ```powershell
-pg_ctl -D "D:\Zhinonglianxiao_completed\Zhinonglianxiao\db"
+pg_ctl -D "D:\Zhinonglianxiao_completed\Zhinonglianxiao\db" start
 ```
