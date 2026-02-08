@@ -3,18 +3,27 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # 安装系统依赖(Worker需要更多编译工具)
-RUN apt-get update && apt-get install -y \
+# 1. 替换国内Debian源，加速下载
+# 2. 修复截断的rm命令，清理apt缓存减小镜像体积
+RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && apt-get install -y \
     gcc \
     g++ \
     git \
     build-essential \
     postgresql-client \
     curl \
-    && rm -rf /var/lib/安装Python依赖
+    && rm -rf /var/lib/apt/lists/*
+
+# 配置国内PyPI源，加速Python依赖安装
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 安装Python依赖（先复制依赖文件，最大化利用缓存）
+COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# 复制应用代码
+# 复制应用代码（放到依赖安装后，修改代码不重复装依赖）
 COPY . .
 
 # 创建必要的目录
