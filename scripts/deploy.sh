@@ -28,12 +28,13 @@ echo ""
 # 3. 加载环境变量
 export $(cat .env | grep -v '^#' | xargs)
 
-# 4. 检查必需的API密钥
+# 4. 检查API密钥（可选，不配也能启动，只是不能用「AI 服务生成」）
 if [ -z "$GEMINI_API_KEY" ] && [ -z "$OPENAI_API_KEY" ] && [ -z "$QWEN_API_KEY" ]; then
-    echo "❌ 至少需要配置一个LLM API密钥(GEMINI_API_KEY/OPENAI_API_KEY/QWEN_API_KEY)"
-    exit 1
+    echo "⚠️  未配置 LLM API 密钥，项目可正常启动，但「AI 服务生成」功能不可用。"
+    echo "   需要时可在 .env 中配置 GEMINI_API_KEY / OPENAI_API_KEY / QWEN_API_KEY 之一。"
+else
+    echo "✅ LLM API 密钥已配置"
 fi
-echo "✅ LLM API密钥已配置"
 echo ""
 
 # 5. 拉取最新代码(可选)

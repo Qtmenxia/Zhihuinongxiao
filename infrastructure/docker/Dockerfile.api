@@ -2,21 +2,30 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# 安装系统依赖
+# 替换国内 Debian 源，加速系统依赖安装（兼容 debian.sources 与 sources.list）
+RUN set -e; \
+  if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+    sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources; \
+  fi; \
+  if [ -f /etc/apt/sources.list ]; then \
+    sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list; \
+  fi
+
+# 安装系统依赖（精简了不必要的build-essential，保留核心依赖）
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     git \
     postgresql-client \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*  # 清理缓存，减小镜像体积
 
 # 复制依赖文件
 COPY requirements.txt .
 
-# 安装Python依赖
+# 安装Python依赖（修复核心错误）
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install -- . .
+    pip install --no-cache-dir -r requirements.txt  # 正确安装requirements.txt中的依赖
 
 # 创建必要的目录
 RUN mkdir -p logs workspace/resources workspace/pipeline-output-servers workspace/refinement workspace/server-test-report
