@@ -14,8 +14,8 @@ load_dotenv(override=True)
 
 # Define default paths relative to the project root
 # Assuming the script is run from the project root
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-DEFAULT_RESOURCES_DIR = PROJECT_ROOT / "resources"
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
+DEFAULT_RESOURCES_DIR = PROJECT_ROOT / "workspace" / "resources"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "workspace/output-servers"
 DEFAULT_REFINEMENT_DIR = PROJECT_ROOT / "workspace/refinement"
 DEFAULT_TEST_REPORT_DIR = PROJECT_ROOT / "workspace/server-test-report"
