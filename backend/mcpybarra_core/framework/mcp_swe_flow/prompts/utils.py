@@ -7,7 +7,7 @@ from jinja2 import Template
 # The path is MCPServer-Generator/framwork/mcp_swe_flow/prompts/utils.py
 # So we need to go up 4 levels.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-PROMPTS_DIR = PROJECT_ROOT / "framwork" / "mcp_swe_flow" / "prompts"
+PROMPTS_DIR = PROJECT_ROOT / "framework" / "mcp_swe_flow" / "prompts"
 
 def load_prompt(prompt_path: str) -> Template:
     """

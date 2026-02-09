@@ -92,6 +92,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production-PLEASE"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7天
     ALGORITHM: str = "HS256"
+
+    # Langchain 配置
+    LANGCHAIN_TRACING_V2: bool = False
     
     # CORS配置
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://localhost:8080"]

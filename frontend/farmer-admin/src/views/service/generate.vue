@@ -306,7 +306,13 @@ async function startGeneration() {
       model: form.model
     })
     
-    serviceId.value = res.data.service_id
+    // 兼容不同的响应格式（axios 拦截器可能已解包数据）
+    const responseData = res.data || res
+    serviceId.value = responseData.service_id || responseData.id
+    
+    if (!serviceId.value) {
+      throw new Error('服务器响应缺少 service_id')
+    }
     
     // 启动WebSocket监听进度
     connectWebSocket()
@@ -318,7 +324,8 @@ async function startGeneration() {
     pollStatus()
     
   } catch (error) {
-    ElMessage.error('启动服务生成失败: ' + error.message)
+    console.error('生成服务失败:', error)
+    ElMessage.error('启动服务生成失败: ' + (error.message || error))
     currentStep.value = 0
     generating.value = false
   }
@@ -348,7 +355,7 @@ async function pollStatus() {
   
   try {
     const res = await getServiceStatus(serviceId.value)
-    const data = res.data
+    const data = res.data || res
     
     if (data.status === 'ready') {
       handleComplete({

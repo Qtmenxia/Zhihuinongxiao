@@ -72,10 +72,57 @@ def load_input_node(state: MCPWorkflowState) -> MCPWorkflowState:
     # Load MCP Document (using the potentially resolved resources_dir)
     mcp_doc = load_mcp_doc(Path(update["resources_dir"]))
     if not mcp_doc:
-        update["error"] = f"Failed to load MCP documentation from {update['resources_dir']}"
-        update["next_step"] = "error_handler"
-        agent_logger.log(event_type="error", error=update["error"], state=state)
-        return {**state, **update}
+        # 尝试从当前工作目录的 workspace/resources 加载
+        alt_path = Path("workspace/resources")
+        logger.warning(f"MCP doc not found at {update['resources_dir']}, trying {alt_path}")
+        mcp_doc = load_mcp_doc(alt_path)
+    
+    if not mcp_doc:
+        # 使用内置默认文档
+        logger.warning("Using built-in default MCP documentation")
+        mcp_doc = """# MCP Server Documentation
+
+## FastMCP Framework
+```python
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("Service Name")
+
+@mcp.tool()
+def tool_name(param: str) -> dict:
+    \"\"\"Tool description\"\"\"
+    return {"success": True, "result": param}
+
+if __name__ == "__main__":
+    mcp.run()
+```
+
+## Best Practices
+1. Use type hints for all parameters
+2. Include docstrings for tools
+3. Return dict with success/error fields
+4. Handle exceptions with try/except
+
+## Example
+```python
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("农产品服务")
+
+@mcp.tool()
+def query_product(product_id: str) -> dict:
+    \"\"\"查询商品信息\"\"\"
+    return {"success": True, "data": {"name": "玉露香梨", "price": 29.9}}
+
+@mcp.tool()
+def answer_question(question: str) -> dict:
+    \"\"\"回答客户问题\"\"\"
+    return {"success": True, "answer": "感谢您的咨询"}
+
+if __name__ == "__main__":
+    mcp.run()
+```
+"""
     update["mcp_doc"] = mcp_doc
 
     # 基于运行模式处理不同的输入

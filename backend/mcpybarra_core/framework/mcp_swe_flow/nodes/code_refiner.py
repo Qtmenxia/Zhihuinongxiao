@@ -115,7 +115,18 @@ async def refine_code_node(state: MCPWorkflowState) -> MCPWorkflowState:
             internal_tool_calls_used = 0
             for i in range(MAX_INTERNAL_TURNS):
                 logger.info(f"Refiner internal research turn {i + 1}/{MAX_INTERNAL_TURNS} (Tool calls used: {internal_tool_calls_used}/{MAX_INTERNAL_TOOL_CALLS})")
-                response_message = await refiner_llm.ainvoke(memory.messages)
+                try:
+                    response_message = await refiner_llm.ainvoke(memory.messages)
+                except UnicodeEncodeError as e:
+                    logger.error(f"Encoding error in code refiner: {e}")
+                    safe_messages = []
+                    for msg in memory.messages:
+                        if hasattr(msg, 'content') and isinstance(msg.content, str):
+                            safe_content = msg.content.encode('utf-8', errors='ignore').decode('utf-8')
+                            safe_messages.append(type(msg)(content=safe_content))
+                        else:
+                            safe_messages.append(msg)
+                    response_message = await refiner_llm.ainvoke(safe_messages)
                 memory.add_message(response_message)
 
                 if response_message.tool_calls:

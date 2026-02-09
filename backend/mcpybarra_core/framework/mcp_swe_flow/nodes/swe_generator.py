@@ -3,6 +3,8 @@ from pathlib import Path
 import re
 import asyncio
 import os
+import sys
+import io
 
 from langchain_core.messages import HumanMessage, ToolMessage, AIMessage
 
@@ -12,6 +14,9 @@ from tool import tavily_search_tool, save_file_tool, context7_docs_tool
 from logger import logger, get_agent_logger
 from mcp_swe_flow.prompts.utils import load_prompt
 
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 def _normalize_and_extract_tool_calls(response_message: AIMessage) -> AIMessage:
     """
@@ -176,6 +181,17 @@ User Request:
         try:
             response_message = await planning_llm.ainvoke(planning_messages)
             response_message = _normalize_and_extract_tool_calls(response_message)
+        except UnicodeEncodeError as e:
+            logger.error(f"Encoding error during LLM invocation: {e}")
+            # 强制转换为UTF-8
+            planning_messages_safe = []
+            for msg in planning_messages:
+                if hasattr(msg, 'content'):
+                    safe_content = msg.content.encode('utf-8', errors='ignore').decode('utf-8') 
+                    planning_messages_safe.append(type(msg)(content=safe_content))
+                else:
+                    planning_messages_safe.append(msg)
+            response_message = await planning_llm.ainvoke(planning_messages_safe)
         except Exception as e:
             logger.error(f"LLM invocation failed during planning phase: {e}", exc_info=True)
             return {**state, "error": f"LLM invocation failed during planning: {e}", "next_step": "error_handler"}
