@@ -82,7 +82,9 @@ def create_mcp_swe_workflow():
         lambda state: state["next_step"],
         {
             "statistics_logger": "statistics_logger",
-            "error_recovery": "error_recovery"
+            "error_recovery": "error_recovery",
+            END: END, 
+            "end": END,  
         }
     )
     

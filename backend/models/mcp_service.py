@@ -65,8 +65,8 @@ class MCPService(Base, TimestampMixin):
     last_called_at = Column(DateTime)
 
     # 时间戳
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, onupdate=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    updated_at = Column(DateTime, onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     
     # 优化历史
     refinement_count = Column(Integer, default=0)

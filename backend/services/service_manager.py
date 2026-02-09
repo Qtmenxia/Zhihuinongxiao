@@ -580,7 +580,7 @@ class ServiceManager:
                 original_requirement=user_input,
                 model_used=model_name,
                 status=ServiceStatus.GENERATING,
-                created_at=datetime.now(timezone.utc)
+                created_at=datetime.now(timezone.utc).replace(tzinfo=None)
             )
             db.add(service)
             
@@ -605,7 +605,7 @@ class ServiceManager:
         request_id: Optional[str] = None
     ):
         """执行MCPybarra工作流并更新状态"""
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(timezone.utc).replace(tzinfo=None)
         logger.info(f"[{request_id}] Starting workflow for {task_id}")
         
         try:
@@ -619,7 +619,7 @@ class ServiceManager:
             requirements = result.get("requirements_content")
             
             cost = self._calculate_cost_from_result(result)
-            generation_time = int((datetime.now(timezone.utc) - start_time).total_seconds())
+            generation_time = int((datetime.now(timezone.utc).replace(tzinfo=None) - start_time).total_seconds())
             quality_score = self._extract_quality_score(result)
             
             async with AsyncSessionLocal() as db:
@@ -637,7 +637,7 @@ class ServiceManager:
                 service.generation_cost = cost
                 service.generation_time = generation_time
                 service.quality_score = quality_score
-                service.updated_at = datetime.now(timezone.utc)
+                service.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
                 
                 await db.commit()
                 logger.info(f"[{request_id}] Workflow completed for {task_id}")
@@ -653,7 +653,7 @@ class ServiceManager:
                 svc_result = await db.execute(stmt)
                 service = svc_result.scalar_one()
                 service.status = ServiceStatus.FAILED
-                service.updated_at = datetime.now(timezone.utc)
+                service.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
                 await db.commit()
             
             await self._notify_completion(task_id, success=False, error=str(e))
@@ -690,7 +690,7 @@ class ServiceManager:
             if not service or service.status != ServiceStatus.GENERATING:
                 return {"progress": 0, "current_stage": "unknown", "message": "Not generating"}
             
-            elapsed = (datetime.now(timezone.utc) - service.created_at).total_seconds()
+            elapsed = (datetime.now(timezone.utc).replace(tzinfo=None) - service.created_at).total_seconds()
             estimated_total = 300
             progress = min(int((elapsed / estimated_total) * 100), 95)
             

@@ -219,6 +219,11 @@ def get_llm_for_agent(agent_name: str, model_override: Optional[str] = None) -> 
     - If a 'model_override' is provided for an 'SWE-Agent', it will be used.
     - Otherwise, it determines the correct model from AGENT_MODEL_MAPPING.
     """
+    # 🔧 新增:清理agent_name中的非ASCII字符,防止HTTP headers编码错误
+    safe_agent_name = re.sub(r'[^\x00-\x7F]+', '', agent_name)
+    if not safe_agent_name:
+        safe_agent_name = "SWE-Agent"
+    logger.info(f"Agent name sanitized: '{agent_name}' -> '{safe_agent_name}'")
     # Step 1: Determine the model name
     model_name = None
     # Priority for SWE-Agent override
@@ -255,17 +260,22 @@ def get_llm_for_agent(agent_name: str, model_override: Optional[str] = None) -> 
     try:
         # 根据不同的提供商设置不同的extra_body和default_headers
         extra_body = {}
-        default_headers = {}
+        
+        # 1. 先初始化通用的 Header，不包含未定义的变量
+        default_headers = {
+            "Content-Type": "application/json; charset=utf-8",
+        }
         
         # OpenRouter 特有配置
         if provider_config['provider'] == 'openrouter':
             # OpenRouter 需要额外的 HTTP 头用于追踪和识别
             site_url = os.getenv("OPENROUTER_SITE_URL", "https://zhinonglianxiao.com")
             site_name = os.getenv("OPENROUTER_SITE_NAME", "智农链销")
-            default_headers = {
-                "HTTP-Referer": site_url,
-                "X-Title": site_name,
-            }
+            
+            # 2. 在这里安全地添加 OpenRouter 所需的 Header
+            default_headers["HTTP-Referer"] = site_url
+            default_headers["X-Title"] = safe_agent_name
+            
             # OpenRouter 支持的额外参数
             openrouter_transforms = os.getenv("OPENROUTER_TRANSFORMS", "")
             if openrouter_transforms:
@@ -307,6 +317,7 @@ def get_llm_for_agent(agent_name: str, model_override: Optional[str] = None) -> 
     except Exception as e:
         logger.error(f"Failed to initialize ChatOpenAI for model {model_name}: {e}")
         raise
+
 
 # Keep `llm` and `llm_with_tools` in __all__ for now to avoid breaking imports,
 # but they should be considered deprecated and removed in a future refactor.

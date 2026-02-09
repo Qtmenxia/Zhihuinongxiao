@@ -17,7 +17,7 @@ class ServiceDeployment(Base):
     stock = Column(Integer, nullable=False)
     description = Column(Text)
     certifications = Column(JSON)
-    deployed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    deployed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     
     # 关联到服务和农户
     service = relationship("MCPService")

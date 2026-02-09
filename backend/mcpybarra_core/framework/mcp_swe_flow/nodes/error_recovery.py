@@ -12,7 +12,12 @@ def error_recovery_node(state: MCPWorkflowState) -> MCPWorkflowState:
     # --- 向用户显示错误信息和通用建议 ---
     print("\n" + "="*30)
     print(f"❌ 工作流在 '{error_source}' 节点遇到错误。")
-    print(f"   错误详情: {error_msg}")
+    try:
+        print(f"   错误详情: {error_msg}")
+    except UnicodeEncodeError:
+        # 降级显示,避免控制台崩溃
+        print(f"   错误详情: {error_msg.encode('ascii', errors='ignore').decode('ascii')}")
+
     print("="*30)
     
     print("\n🔍 问题排查建议:")

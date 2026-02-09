@@ -29,7 +29,7 @@ class ServiceLog(Base):
     user_ip = Column(String(50))
     
     # 时间戳
-    created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc).replace(tzinfo=None), nullable=False, index=True)
     
     # 关联
     service = relationship("MCPService", back_populates="logs")
