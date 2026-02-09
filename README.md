@@ -339,7 +339,7 @@ alembic upgrade head
 python -m backend.scripts.init_db
 
 # 7. 启动API服务
-uvicorn backend.api.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn backend.api.main:app --reload --host 0.0.0.0 --port 8000 --reload-exclude "workspace/*"
 
 # 8.前端启动
 ```powershell
