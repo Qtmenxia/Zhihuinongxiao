@@ -301,18 +301,23 @@ def get_llm_for_agent(agent_name: str, model_override: Optional[str] = None) -> 
                 }
 
         
+        actual_model_name = model_name
+        if provider_config['provider'] == 'openrouter' and model_name.startswith("openrouter/"):
+            actual_model_name = model_name[len("openrouter/"):]
+            logger.info(f"OpenRouter model name adjusted: '{model_name}' -> '{actual_model_name}'")
+        
         agent_llm = ChatOpenAI(
-            model=model_name,
+            model=actual_model_name,
             openai_api_base=base_url,
             openai_api_key=api_key,
             max_tokens=llm_max_tokens,
             temperature=llm_temperature,
             callbacks=[token_handler],
-            request_timeout=6000, # 设置为无超时
+            request_timeout=6000,
             default_headers=default_headers if default_headers else None,
             extra_body=extra_body if extra_body else None
         )
-        logger.info(f"Created LLM instance for agent '{agent_name}' with model '{model_name}' via provider '{provider_config['provider']}'.")
+        logger.info(f"Created LLM instance for agent '{agent_name}' with model '{actual_model_name}' via provider '{provider_config['provider']}'.")
         return agent_llm
     except Exception as e:
         logger.error(f"Failed to initialize ChatOpenAI for model {model_name}: {e}")
