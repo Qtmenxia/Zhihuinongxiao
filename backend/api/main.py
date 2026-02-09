@@ -41,8 +41,8 @@ async def lifespan(app: FastAPI):
         await init_db()
         logger.info("✅ Database initialized successfully")
     except Exception as e:
-        logger.error(f"❌ Failed to initialize database: {e}")
-        raise
+        logger.warning(f"⚠️ Failed to initialize database: {e}")
+        logger.warning("⚠️ Continuing without database...")
     
     # 预热MCPybarra工作流(可选)
     try:
