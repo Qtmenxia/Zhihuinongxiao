@@ -325,18 +325,18 @@ async def get_session() -> AsyncSession:
         yield session
 
 
-async def get_current_farmer(
+async def get_current_farmer_v2(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_session)
 ) -> Farmer:
-    """获取当前认证农户"""
+    """获取当前认证农户（备用版本）"""
     try:
         payload = jwt.decode(
             credentials.credentials,
-            settings.JWT_SECRET,
-            algorithms=[settings.JWT_ALGORITHM]
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM]
         )
-        farmer_id = payload.get("sub")
+        farmer_id = payload.get("sub") or payload.get("farmer_id")
         if not farmer_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

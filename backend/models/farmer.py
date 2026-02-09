@@ -10,9 +10,9 @@ from datetime import datetime
 
 class FarmerTier(str, enum.Enum):
     """农户订阅等级"""
-    FREE = "free"
-    BASIC = "basic"
-    PROFESSIONAL = "professional"
+    FREE = "FREE"
+    BASIC = "BASIC"
+    PROFESSIONAL = "PROFESSIONAL"
 
 
 class Farmer(Base, TimestampMixin):

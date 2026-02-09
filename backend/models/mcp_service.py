@@ -13,12 +13,11 @@ from backend.models.base import Base
 
 class ServiceStatus(str, enum.Enum):
     """服务状态"""
-    GENERATING = "generating"   # 生成中
-    TESTING = "testing"         # 测试中
-    READY = "ready"             # 已就绪
-    DEPLOYED = "deployed"       # 已部署
-    FAILED = "failed"           # 失败
-    ARCHIVED = "archived"       # 已归档
+    PENDING = "PENDING"
+    GENERATING = "GENERATING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    DEPLOYED = "DEPLOYED"
 
 
 class MCPService(Base, TimestampMixin):

@@ -113,80 +113,38 @@ async def login_farmer(
         login_data: 登录信息
         db: 数据库会话
     """
-    # 临时Mock登录 - 数据库未连接时使用
-    if login_data.phone == "13800138000" and login_data.password == "demo123456":
-        # 创建Mock农户数据
-        mock_farmer = FarmerResponse(
-            id="farmer_demo_mock_001",
-            name="蒲县被子垣果园",
-            phone="13800138000",
-            email="demo@zhinonglianxiao.com",
-            province="山西省",
-            city="临汾市",
-            county="蒲县",
-            village="被子垣村",
-            tier="basic",
-            is_verified=True,
-            certification_type="有机认证",
-            services_count=0,
-            api_calls_today=0,
-            enable_commission=False,
-            commission_rate=5,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc)
-        )
-        
-        # 生成访问令牌
-        access_token = create_access_token(
-            data={"farmer_id": mock_farmer.id}
-        )
-        
-        return FarmerLoginResponse(
-            access_token=access_token,
-            token_type="bearer",
-            farmer=mock_farmer
+    # 查询农户
+    result = await db.execute(
+        select(Farmer).where(Farmer.phone == login_data.phone)
+    )
+    farmer = result.scalar_one_or_none()
+    
+    if not farmer:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid phone number or password"
         )
     
-    # 正常数据库登录流程
-    try:
-        # 查询农户
-        result = await db.execute(
-            select(Farmer).where(Farmer.phone == login_data.phone)
-        )
-        farmer = result.scalar_one_or_none()
-        
-        if not farmer:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid phone number or password"
-            )
-        
-        # 验证密码
-        if not bcrypt.checkpw(
-            login_data.password.encode('utf-8'),
-            farmer.password_hash.encode('utf-8')
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid phone number or password"
-            )
-        
-        # 生成访问令牌
-        access_token = create_access_token(
-            data={"farmer_id": farmer.id}
-        )
-        
-        return FarmerLoginResponse(
-            access_token=access_token,
-            token_type="bearer",
-            farmer=FarmerResponse.model_validate(farmer)
-        )
-    except Exception as e:
-        # 数据库连接失败时的提示
+    # 验证密码
+    if not bcrypt.checkpw(
+        login_data.password.encode('utf-8'),
+        farmer.password_hash.encode('utf-8')
+    ):
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Database connection failed. Please use demo account: 13800138000 / demo123456. Error: {str(e)}"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid phone number or password"
         )
+    
+    # 生成访问令牌
+    access_token = create_access_token(
+        data={"farmer_id": farmer.id}
+    )
+    
+    return FarmerLoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        farmer=FarmerResponse.model_validate(farmer)
+    )
 
 
 @router.get(
@@ -368,3 +326,20 @@ async def upgrade_subscription(
     # TODO: 集成支付系统
     
     return FarmerResponse.model_validate(current_farmer)
+
+
+@router.post(
+    "/logout",
+    summary="农户登出",
+    description="登出当前农户（客户端应删除token）"
+)
+async def logout_farmer():
+    """
+    农户登出
+    
+    由于使用JWT，服务端无状态，实际登出由客户端删除token完成
+    """
+    return {
+        "message": "Logout successful",
+        "detail": "Please remove the access token from client storage"
+    }

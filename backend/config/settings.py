@@ -4,7 +4,8 @@
 import os
 from pathlib import Path
 from pydantic_settings import BaseSettings
-from typing import Optional, List
+from pydantic import field_validator
+from typing import Optional, List, Union
 
 
 class Settings(BaseSettings):
@@ -93,7 +94,15 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     
     # CORS配置
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8080"]
+    CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://localhost:8080"]
+    
+    @field_validator('CORS_ORIGINS', mode='before')
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """解析 CORS_ORIGINS，支持逗号分隔的字符串"""
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(',')]
+        return v
     
     # 支付配置
     WECHAT_APP_ID: Optional[str] = None
@@ -139,7 +148,8 @@ class Settings(BaseSettings):
     
     class Config:
         """Pydantic配置"""
-        env_file = ".env"
+        # 使用绝对路径指向 backend/.env 文件
+        env_file = str(Path(__file__).parent.parent / ".env")
         env_file_encoding = "utf-8"
         case_sensitive = True
     

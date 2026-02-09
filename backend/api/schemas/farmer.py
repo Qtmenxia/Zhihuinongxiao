@@ -13,9 +13,9 @@ from enum import Enum
 
 class FarmerTierEnum(str, Enum):
     """农户订阅层级枚举"""
-    FREE = "free"
-    BASIC = "basic"
-    PROFESSIONAL = "professional"
+    FREE = "FREE"
+    BASIC = "BASIC"
+    PROFESSIONAL = "PROFESSIONAL"
 
 
 # ==================== 请求Schema ====================

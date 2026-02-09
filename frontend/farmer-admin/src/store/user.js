@@ -28,30 +28,36 @@ export const useUserStore = defineStore('user', () => {
     try {
       const res = await login(loginForm)
 
-      // 🔍 调试：建议在控制台打印一下，看看到底返回了什么
       console.log('后端登录返回数据:', res)
 
-      // 🛠️ 修复点 1：字段名修正
-      // FastAPI 默认返回字段是 access_token，而不是 token
-      // 🛠️ 修复点 2：层级修正
-      // 如果拦截器已处理 response.data，则 res 就是数据本身，不需要再写 .data
-      const accessToken = res.access_token || res.token || res.data?.access_token || res.data?.token
+      // 获取 access_token
+      const accessToken = res.access_token || res.token
 
       if (!accessToken) {
-        throw new Error('登录响应中未找到 Token，请检查网络请求返回值')
+        throw new Error('登录响应中未找到 Token')
       }
 
       token.value = accessToken
       localStorage.setItem('token', accessToken)
 
-      // 获取用户信息
-      await fetchUserInfo()
+      // 保存用户信息
+      if (res.farmer) {
+        userInfo.value = {
+          id: res.farmer.id,
+          name: res.farmer.name,
+          phone: res.farmer.phone,
+          avatar: res.farmer.avatar || '',
+          tier: res.farmer.tier,
+          servicesCount: res.farmer.services_count || 0,
+          apiCallsToday: res.farmer.api_calls_today || 0
+        }
+      }
 
       ElMessage.success('登录成功')
       return true
     } catch (error) {
       console.error('登录出错:', error)
-      ElMessage.error(error.message || '登录失败')
+      ElMessage.error(error.response?.data?.detail || error.message || '登录失败')
       return false
     }
   }
@@ -61,14 +67,16 @@ export const useUserStore = defineStore('user', () => {
   async function fetchUserInfo() {
     try {
       const res = await getUserInfo()
+      // 处理响应数据，可能是 res 或 res.data
+      const data = res.data || res
       userInfo.value = {
-        id: res.data.id,
-        name: res.data.name,
-        phone: res.data.phone,
-        avatar: res.data.avatar || '',
-        tier: res.data.tier,
-        servicesCount: res.data.services_count,
-        apiCallsToday: res.data.api_calls_today
+        id: data.id,
+        name: data.name,
+        phone: data.phone,
+        avatar: data.avatar || '',
+        tier: data.tier,
+        servicesCount: data.services_count || 0,
+        apiCallsToday: data.api_calls_today || 0
       }
     } catch (error) {
       console.error('Failed to fetch user info:', error)

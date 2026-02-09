@@ -67,7 +67,7 @@ class OrderResponse(BaseModel):
     total_amount: float
     
     # 支付信息
-    payment_method: str
+    payment_method: Optional[str] = None
     payment_transaction_id: Optional[str] = None
     paid_at: Optional[datetime] = None
     

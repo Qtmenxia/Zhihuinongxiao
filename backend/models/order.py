@@ -9,12 +9,12 @@ import enum
 
 class OrderStatus(str, enum.Enum):
     """订单状态"""
-    PENDING = "pending"
-    PAID = "paid"
-    SHIPPED = "shipped"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
-    REFUNDED = "refunded"
+    PENDING = "PENDING"
+    PAID = "PAID"
+    SHIPPED = "SHIPPED"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+    REFUNDED = "REFUNDED"
 
 
 class Order(Base, TimestampMixin):

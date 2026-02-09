@@ -164,12 +164,33 @@ const handleCommand = (command) => {
 <style lang="scss" scoped>
 .app-container {
   height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1001;
   background-color: #304156;
   transition: width 0.3s;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  
+  // 自定义滚动条样式
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+  }
   
   .logo {
     height: 60px;
@@ -177,6 +198,9 @@ const handleCommand = (command) => {
     align-items: center;
     justify-content: center;
     background-color: #263445;
+    position: sticky;
+    top: 0;
+    z-index: 10;
     
     .logo-img {
       width: 32px;
@@ -200,6 +224,19 @@ const handleCommand = (command) => {
 .main-container {
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  margin-left: 220px;
+  transition: margin-left 0.3s;
+  
+  // 当侧边栏折叠时调整主容器边距
+  .sidebar.is-collapse + & {
+    margin-left: 64px;
+  }
+}
+
+// 根据侧边栏状态调整主容器
+.app-container:has(.sidebar[style*="width: 64px"]) .main-container {
+  margin-left: 64px;
 }
 
 .header {
@@ -210,6 +247,10 @@ const handleCommand = (command) => {
   padding: 0 20px;
   background-color: #fff;
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
   
   .header-left {
     display: flex;
@@ -219,6 +260,7 @@ const handleCommand = (command) => {
       font-size: 20px;
       cursor: pointer;
       margin-right: 20px;
+      transition: color 0.3s;
       
       &:hover {
         color: #409EFF;
@@ -231,6 +273,11 @@ const handleCommand = (command) => {
       display: flex;
       align-items: center;
       cursor: pointer;
+      transition: color 0.3s;
+      
+      &:hover {
+        color: #409EFF;
+      }
       
       .user-name {
         margin: 0 8px;
@@ -241,9 +288,29 @@ const handleCommand = (command) => {
 }
 
 .main-content {
+  flex: 1;
   background-color: #f0f2f5;
   padding: 20px;
   overflow-y: auto;
+  overflow-x: hidden;
+  
+  // 自定义滚动条样式
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background-color: #f1f1f1;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: #c1c1c1;
+    border-radius: 4px;
+    
+    &:hover {
+      background-color: #a8a8a8;
+    }
+  }
 }
 
 // 过渡动画
