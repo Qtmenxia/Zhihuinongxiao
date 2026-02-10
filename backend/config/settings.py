@@ -85,6 +85,8 @@ class Settings(BaseSettings):
     WORKSPACE_DIR: str = "workspace"
     UPLOAD_DIR: str = "uploads"
     GENERATED_SERVICES_DIR: str = "generated_services"
+    SERVICES_DIR: str = "workspace/services"
+    SERVICES_DIR: str = os.getenv("SERVICES_DIR", "workspace/services")
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
     
     # 安全配置

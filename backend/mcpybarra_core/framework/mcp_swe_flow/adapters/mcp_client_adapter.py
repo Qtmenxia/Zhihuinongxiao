@@ -82,8 +82,43 @@ class MCPClientAdapter:
             logger.info(f"🔄 准备启动命令: {command} {' '.join(args)}, cwd={cwd_str}")
             
             # 使用与 framwork/tool/mcp.py 相同的方式
-            server_params = StdioServerParameters(command=command, args=args)
+            # 尽量把 cwd 传进去（不同版本 mcp 可能 StdioServerParameters 参数不同，做兼容）
+            try:
+                server_params = StdioServerParameters(command=command, args=args, cwd=cwd_str)
+            except TypeError:
+                server_params = StdioServerParameters(command=command, args=args)
             logger.info(f"🔄 创建服务器参数: {server_params}")
+
+            # ---- 预检：先试启动 0.8s，若秒退则抓 stdout/stderr ----
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    command, *args,
+                    cwd=cwd_str,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                await asyncio.sleep(0.8)
+                ret = proc.returncode
+                if ret is not None:
+                    out = (await proc.stdout.read()).decode("utf-8", errors="ignore")
+                    err = (await proc.stderr.read()).decode("utf-8", errors="ignore")
+                    logger.error("❌ MCP server 进程启动后立刻退出 (returncode={})", ret)
+                    if out.strip():
+                        logger.error("---- server stdout ----\n{}", out[-max_output_length:])
+                    if err.strip():
+                        logger.error("---- server stderr ----\n{}", err[-max_output_length:])
+                    raise RuntimeError("MCP server 秒退：请根据 stderr 修复生成代码/依赖/环境变量后重试")
+                # 仍在运行：终止预检进程（避免占用），然后走 stdio_client 正式连接
+                proc.terminate()
+                try:
+                    await asyncio.wait_for(proc.wait(), timeout=1.0)
+                except Exception:
+                    proc.kill()
+            except Exception as precheck_exc:
+                # 预检失败不应该吞掉信息
+                logger.error("❌ MCP server 预检失败: {}", precheck_exc, exc_info=True)
+                raise
+            # ---- 预检结束 ----
             
             # 通过subprocess启动并连接到MCP服务器
             stdio_transport = await self.exit_stack.enter_async_context(

@@ -116,9 +116,21 @@ async def swe_generate_node(state: MCPWorkflowState) -> MCPWorkflowState:
     
     # Create __init__.py files to make directories importable packages
     # This needs to be done for all parent directories up to the workspace root for the tool
+    # 确保基础目录存在
+    workspace_dir.mkdir(parents=True, exist_ok=True)
+    output_servers_dir.mkdir(parents=True, exist_ok=True)
+
+    # 注意：swe_model 可能包含 "openrouter/anthropic/claude-3.5-sonnet" 这种多级路径
+    # 所以一定要 parents=True
+    project_dir.mkdir(parents=True, exist_ok=True)
+
+    # 从 project_dir 一直向上到 workspace_dir（包含 workspace_dir）都创建 __init__.py
     p = project_dir
-    while p != workspace_dir:
+    while True:
+        p.mkdir(parents=True, exist_ok=True)
         (p / "__init__.py").touch(exist_ok=True)
+        if p == workspace_dir:
+            break
         p = p.parent
 
     # The path for the tool is relative to the tool's workspace_root ("workspace/")
@@ -443,6 +455,7 @@ User Request:
                         final_update = {
                             "server_code": tool_args["content"],
                             "server_file_path": str(absolute_server_path),
+                            "code": tool_args["content"],  
                             "project_dir": str(project_dir.resolve()),
                             "api_name": api_name,
                             "next_step": next_node,
