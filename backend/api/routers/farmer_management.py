@@ -113,38 +113,43 @@ async def login_farmer(
         login_data: 登录信息
         db: 数据库会话
     """
-    # 临时Mock登录 - 数据库未连接时使用
+    # Demo账号：若不存在则创建，保证 token 中 farmer_id 一定能在 DB 查到
     if login_data.phone == "13800138000" and login_data.password == "demo123456":
-        # 创建Mock农户数据
-        mock_farmer = FarmerResponse(
-            id="farmer_demo_mock_001",
-            name="蒲县被子垣果园",
-            phone="13800138000",
-            email="demo@zhinonglianxiao.com",
-            province="山西省",
-            city="临汾市",
-            county="蒲县",
-            village="被子垣村",
-            tier="basic",
-            is_verified=True,
-            certification_type="有机认证",
-            services_count=0,
-            api_calls_today=0,
-            enable_commission=False,
-            commission_rate=5,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc)
-        )
-        
-        # 生成访问令牌
-        access_token = create_access_token(
-            data={"farmer_id": mock_farmer.id}
-        )
-        
+        result = await db.execute(select(Farmer).where(Farmer.phone == login_data.phone))
+        farmer = result.scalar_one_or_none()
+
+        if not farmer:
+            password_hash = bcrypt.hashpw(
+                login_data.password.encode("utf-8"),
+                bcrypt.gensalt()
+            ).decode("utf-8")
+
+            farmer = Farmer(
+                id=f"farmer_{uuid.uuid4().hex[:12]}",
+                name="蒲县被子垣果园",
+                phone="13800138000",
+                password_hash=password_hash,
+                email="demo@zhinonglianxiao.com",
+                province="山西省",
+                city="临汾市",
+                county="蒲县",
+                village="被子垣村",
+                tier=FarmerTier.BASIC if hasattr(FarmerTier, "BASIC") else FarmerTier.FREE,
+                is_verified=True,
+                certification_type="有机认证",
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
+            )
+            db.add(farmer)
+            await db.commit()
+            await db.refresh(farmer)
+
+        access_token = create_access_token(data={"farmer_id": farmer.id})
+
         return FarmerLoginResponse(
             access_token=access_token,
             token_type="bearer",
-            farmer=mock_farmer
+            farmer=FarmerResponse.model_validate(farmer)
         )
     
     # 正常数据库登录流程
