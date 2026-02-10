@@ -2,6 +2,11 @@
 智农链销 - FastAPI主应用入口
 基于MCPybarra多智能体框架的农产品电商赋能平台
 """
+import sys
+if sys.platform == 'win32':
+    import asyncio
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -33,9 +38,31 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
-    # 启动时执行
     logger.info("🚀 Starting ZhiNongLianXiao API Server...")
+    # === 新增：预创建工作区目录 ===
+    try:
+        from pathlib import Path
+        # main.py 在 backend/api/main.py，回溯2层到项目根
+        project_root = Path(__file__).resolve().parents[2]
+        workspace_dirs = [
+            project_root / "workspace" / "pipeline-output-servers",
+            project_root / "workspace" / "refinement",
+            project_root / "workspace" / "server-test-report",
+            # 同时创建 testFiles 目录
+            project_root / "backend" / "mcpybarra_core" / "framework" / "testSystem" / "testFiles",
+        ]
+        for dir_path in workspace_dirs:
+            dir_path.mkdir(parents=True, exist_ok=True)
+        logger.info(f"✅ Workspace directories initialized at {project_root / 'workspace'}")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to create workspace directories: {e}")
     
+    # 初始化数据库
+    try:
+        await init_db()
+        logger.info("✅ Database initialized successfully")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to initialize database: {e}")
     # 初始化数据库
     try:
         await init_db()
@@ -44,23 +71,30 @@ async def lifespan(app: FastAPI):
         logger.warning(f"⚠️ Failed to initialize database: {e}")
         logger.warning("⚠️ Continuing without database...")
     
-    # 预热MCPybarra工作流(可选)
-    try:
-        from backend.mcpybarra_core.framework.mcp_swe_flow.graph import create_mcp_swe_workflow
-        workflow = create_mcp_swe_workflow()
-        logger.info("✅ MCPybarra workflow preloaded")
-    except Exception as e:
-        logger.warning(f"⚠️ Failed to preload MCPybarra workflow: {e}")
+    # 延迟加载MCPybarra工作流 - 避免启动时的导入副作用触发reload
+    # workflow 将在首次请求时按需创建
+    app.state.workflow = None
+    app.state.workflow_ready = False
     
-    logger.info("✅ Application startup complete")
+    logger.info("✅ Application startup complete (workflow will be loaded on first request)")
     
-    yield  # 应用运行中
+    yield
     
-    # 关闭时执行
     logger.info("🛑 Shutting down application...")
-    # 清理资源
     logger.info("✅ Cleanup complete")
 
+async def get_workflow(app: FastAPI):
+    """按需加载MCPybarra工作流（首次调用时初始化）"""
+    if not app.state.workflow_ready:
+        try:
+            from backend.mcpybarra_core.framework.mcp_swe_flow.graph import create_mcp_swe_workflow
+            app.state.workflow = create_mcp_swe_workflow()
+            app.state.workflow_ready = True
+            logger.info("✅ MCPybarra workflow loaded on first request")
+        except Exception as e:
+            logger.error(f"❌ Failed to load MCPybarra workflow: {e}")
+            raise
+    return app.state.workflow
 
 # 创建FastAPI应用实例
 app = FastAPI(

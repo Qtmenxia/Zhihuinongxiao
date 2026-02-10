@@ -14,9 +14,15 @@ from tool import tavily_search_tool, save_file_tool, context7_docs_tool
 from logger import logger, get_agent_logger
 from mcp_swe_flow.prompts.utils import load_prompt
 
-if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+# 修复后 - 仅在非Uvicorn子进程中覆写，避免破坏reload通信
+if sys.platform == 'win32' and not os.environ.get('UVICORN_STARTED'):
+    try:
+        if hasattr(sys.stdout, 'buffer'):
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        if hasattr(sys.stderr, 'buffer'):
+            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+    except Exception:
+        pass  # 在Uvicorn子进程中可能失败，安全忽略
 
 def _normalize_and_extract_tool_calls(response_message: AIMessage) -> AIMessage:
     """
@@ -97,14 +103,16 @@ async def swe_generate_node(state: MCPWorkflowState) -> MCPWorkflowState:
     if not api_name:
         api_name = "unnamed_mcp_server"
 
-    # Create a dedicated project directory for all outputs, structured by model name
-    workspace_dir = Path("workspace")
+    # 从 swe_generator.py 回溯到项目根目录：
+    # backend/mcpybarra_core/framework/mcp_swe_flow/nodes/swe_generator.py
+    # ↑ 5层目录到达项目根
+    PROJECT_ROOT = Path(__file__).resolve().parents[5]  
+    # 如果目录层级不同，请根据实际调整，确保指向包含 workspace/ 的根目录
+    # 验证方法：print(PROJECT_ROOT) 应输出 D:\Zhinonglianxiao_completed\Zhinonglianxiao
+
+    workspace_dir = PROJECT_ROOT / "workspace"
     output_servers_dir = workspace_dir / "pipeline-output-servers"
-    # New directory structure: /pipeline-output-servers/<model_name>/<api_name>
     project_dir = output_servers_dir / swe_model / api_name
-    
-    # Ensure all directories in the path are packages
-    project_dir.mkdir(parents=True, exist_ok=True)
     
     # Create __init__.py files to make directories importable packages
     # This needs to be done for all parent directories up to the workspace root for the tool

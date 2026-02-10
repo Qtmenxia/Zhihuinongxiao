@@ -339,8 +339,20 @@ alembic upgrade head
 python -m backend.scripts.init_db
 
 # 7. 启动API服务
-uvicorn backend.api.main:app --reload --reload-dir backend
- --host 0.0.0.0 --port 8000
+uvicorn backend.api.main:app --reload \
+    --reload-dir backend/api \
+    --reload-dir backend/services \
+    --reload-dir backend/models \
+    --reload-dir backend/config \
+    --reload-dir backend/database \
+    --reload-exclude "*.log" \
+    --reload-exclude "*.pyc" \
+    --reload-exclude "workspace/*" \
+    --reload-exclude "__pycache__/*" \
+    --host 0.0.0.0 --port 8000
+
+# 临时测试：不带 --reload
+uvicorn backend.api.main:app --host 0.0.0.0 --port 8000
 
 # 8.前端启动
 ```powershell
@@ -397,7 +409,8 @@ zhinonglianxiao/
 │   │   ├── service_manager.py       # 服务管理器
 │   │   ├── deployment_service.py    # 部署服务
 │   │   ├── cost_calculator.py       # 成本计算
-│   │   └── quality_monitor.py       # 质量监控
+│   │   ├── quality_monitor.py       # 质量监控
+├   ├   └── worker_service.py
 │   ├── mcpybarra_core/              # MCPybarra框架
 │   │   └── framework/mcp_swe_flow/
 │   │       ├── graph.py             # LangGraph工作流
@@ -447,7 +460,8 @@ zhinonglianxiao/
 └── workspace/                         # MCPybarra工作空间
     ├── pipeline-output-servers/      # 生成的服务
     ├── refinement/                   # 优化过程
-    └── server-test-report/           # 测试报告
+    ├── server-test-report/           # 测试报告
+    └── resources/
 ```
 
 # 数据库配置

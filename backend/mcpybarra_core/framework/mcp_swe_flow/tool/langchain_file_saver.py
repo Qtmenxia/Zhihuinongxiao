@@ -23,7 +23,22 @@ class LangchainFileSaverTool(BaseTool):
                         "Do NOT use absolute paths.")
     args_schema: Type[BaseModel] = LangchainFileSaverInput
     # Defines the root for relative paths used by this tool
-    workspace_root: Path = Path("workspace") 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.workspace_root.mkdir(parents=True, exist_ok=True)
+        logger.info(f"LangchainFileSaverTool initialized with workspace_root: {self.workspace_root}")
+    def _get_default_workspace_root() -> Path:
+        # tool/ (0) → framework(1) → mcpybarra_core(2) → backend(3) → 项目根(4)
+        project_root = Path(__file__).resolve().parents[5]
+        workspace = project_root / "workspace"
+        # 支持环境变量覆盖（方便部署和测试）
+        env_workspace = os.environ.get("WORKSPACE_ROOT")
+        if env_workspace:
+            workspace = Path(env_workspace)
+        return workspace
+
+    # 类内属性：
+    workspace_root: Path = Field(default_factory=_get_default_workspace_root)
 
     def _validate_path(self, file_path_str: str) -> tuple[Path | None, str | None]:
         """Validates the path and returns the full path or an error message."""
@@ -35,11 +50,10 @@ class LangchainFileSaverTool(BaseTool):
             logger.error(error_msg)
             return None, error_msg
             
-        full_path = self.workspace_root.resolve() / target_path
-        
-        # Optional: Check if it's truly within the intended workspace root after resolving
+        resolved_root = self.workspace_root.resolve()
+        full_path = resolved_root / target_path
         try:
-            full_path.relative_to(self.workspace_root.resolve())
+            full_path.resolve().relative_to(resolved_root)  # full_path也做resolve，防止符号链接逃逸
         except ValueError:
             error_msg = f"Error: Path '{file_path_str}' resolves outside the workspace directory '{self.workspace_root.resolve()}'."
             logger.error(error_msg)
@@ -62,8 +76,9 @@ class LangchainFileSaverTool(BaseTool):
             with open(full_path, mode, encoding="utf-8") as file:
                 file.write(content)
 
-            relative_path_str = str(self.workspace_root / Path(file_path).relative_to(Path(file_path).anchor))
-            success_msg = f"Content successfully saved to {relative_path_str}"
+            display_path = Path("workspace") / file_path
+            success_msg = f"Content successfully saved to {display_path}"
+            logger.info(f"File saved to absolute path: {full_path}")
             logger.info(success_msg)
             return success_msg
         except Exception as e:
