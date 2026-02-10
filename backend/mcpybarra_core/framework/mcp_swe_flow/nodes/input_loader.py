@@ -26,7 +26,7 @@ def load_input_node(state: MCPWorkflowState) -> MCPWorkflowState:
     agent_logger.log(event_type="start_node", state=state)
     api_name = state.get("api_name")
     user_input = state.get("user_input")
-    print(user_input)
+    logger.debug(f"User input received: {user_input[:100] if user_input else 'None'}...")
     
     # 确定运行模式
     mode = "api" if api_name else "user_input" if user_input else None

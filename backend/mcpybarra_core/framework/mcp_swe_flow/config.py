@@ -219,6 +219,7 @@ def get_llm_for_agent(agent_name: str, model_override: Optional[str] = None) -> 
     - If a 'model_override' is provided for an 'SWE-Agent', it will be used.
     - Otherwise, it determines the correct model from AGENT_MODEL_MAPPING.
     """
+    model_override = "openrouter/anthropic/claude-3.5-sonnet"
     # 🔧 新增:清理agent_name中的非ASCII字符,防止HTTP headers编码错误
     safe_agent_name = re.sub(r'[^\x00-\x7F]+', '', agent_name)
     if not safe_agent_name:
