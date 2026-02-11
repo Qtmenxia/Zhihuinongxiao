@@ -7,7 +7,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from typing import Optional, AsyncGenerator
-import jwt
+from jose import jwt, JWTError,ExpiredSignatureError
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 import uuid
@@ -91,24 +91,16 @@ def decode_access_token(token: str) -> dict:
         HTTPException: 令牌无效或过期
     """
     try:
-        payload = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
-        )
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         return payload
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired",
             headers={"WWW-Authenticate": "Bearer"}
         )
-    except jwt.JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 async def get_current_farmer(

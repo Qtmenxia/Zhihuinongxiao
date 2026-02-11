@@ -164,8 +164,10 @@ async function loadData() {
       status: filters.status || undefined,
       keyword: filters.keyword || undefined
     })
-    services.value = res.data?.items || []
-    pagination.total = res.data?.total || 0
+    const payload = res?.data ?? res
+    services.value = payload?.items || []
+    total.value = payload?.total || 0
+    pagination.total = payload?.total || 0
   } catch (error) {
     ElMessage.error('加载服务列表失败')
   } finally {

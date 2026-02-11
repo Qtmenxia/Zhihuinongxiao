@@ -114,7 +114,8 @@ async function loadDetail() {
   loading.value = true
   try {
     const res = await getServiceDetail(route.params.id)
-    service.value = res.data || {}
+    const payload = res?.data ?? res
+    service.value = payload || {}
   } catch (error) {
     ElMessage.error('加载服务详情失败')
   } finally {

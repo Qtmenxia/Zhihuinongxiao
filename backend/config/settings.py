@@ -90,9 +90,12 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
     
     # 安全配置
-    SECRET_KEY: str = "your-secret-key-change-in-production-PLEASE"
+    JWT_SECRET_KEY: str = "your-secret-key-change-in-production-PLEASE"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7天
-    ALGORITHM: str = "HS256"
+    JWT_ALGORITHM: str = "HS256"
+    # pyjwt迁移至python-jose遗留产物
+    SECRET_KEY: str = JWT_SECRET_KEY
+    ALGORITHM: str = JWT_ALGORITHM
 
     # Langchain 配置
     LANGCHAIN_TRACING_V2: bool = False

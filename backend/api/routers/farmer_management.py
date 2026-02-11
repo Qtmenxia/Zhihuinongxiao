@@ -113,19 +113,20 @@ async def login_farmer(
         login_data: 登录信息
         db: 数据库会话
     """
-    # Demo账号：若不存在则创建，保证 token 中 farmer_id 一定能在 DB 查到
+    # 临时Demo登录（但必须与数据库对齐）
     if login_data.phone == "13800138000" and login_data.password == "demo123456":
         result = await db.execute(select(Farmer).where(Farmer.phone == login_data.phone))
         farmer = result.scalar_one_or_none()
 
-        if not farmer:
+        if farmer is None:
+            # DB里没有才创建，并确保这个ID将来能通过token查到
             password_hash = bcrypt.hashpw(
                 login_data.password.encode("utf-8"),
                 bcrypt.gensalt()
             ).decode("utf-8")
 
             farmer = Farmer(
-                id=f"farmer_{uuid.uuid4().hex[:12]}",
+                id="farmer_demo_mock_001",   # 你也可以不固定ID，但固定更利于调试
                 name="蒲县被子垣果园",
                 phone="13800138000",
                 password_hash=password_hash,
@@ -145,7 +146,6 @@ async def login_farmer(
             await db.refresh(farmer)
 
         access_token = create_access_token(data={"farmer_id": farmer.id})
-
         return FarmerLoginResponse(
             access_token=access_token,
             token_type="bearer",
