@@ -1,7 +1,7 @@
 import os
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime,timezone
 from pathlib import Path
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,7 @@ from backend.database.connection import AsyncSessionLocal
 from backend.models.mcp_service import MCPService, ServiceStatus
 from backend.mcpybarra_core.framework.mcp_swe_flow.nodes.swe_generator import swe_generate_node
 from backend.config.settings import settings
+from backend.mcpybarra_core.framework.mcp_swe_flow.nodes.input_loader import load_input_node
 
 # 配置日志
 logger = logging.getLogger("worker.service")
@@ -64,13 +65,18 @@ async def process_single_service(session: AsyncSession, service: MCPService):
             "user_input": service.original_requirement,
             "project_path": service.file_path or "",  
             "demo_mode": False,
-            "verbose": True
+            "verbose": True,
+            "swe_model": service.model_used or "openrouter/anthropic/claude-3.5-sonnet"
         }
         
         logger.info(f"🤖 Generating code with LLM for {service_id}...")
 
-        # Step 3: 调用生成逻辑
-        # 这可能会花费一些时间
+        # Step 3: 先通过 load_input_node 加载 MCP 文档
+        state = load_input_node(state)
+        if state.get("error"):
+            raise Exception(f"Input loading failed: {state.get('error')}")
+        
+        # Step 4: 调用生成逻辑
         result_state = await swe_generate_node(state)
         
         generated_code = result_state.get("implementation_code", "")
@@ -120,7 +126,7 @@ async def process_single_service(session: AsyncSession, service: MCPService):
         # 修正：模型里没有 COMPLETED，改为 READY
         service.status = ServiceStatus.READY 
         service.file_path = str(service_dir)
-        service.updated_at = datetime.utcnow()
+        service.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         
         await session.commit()
         logger.info(f"🎉 Service {service_id} processing COMPLETED (Status: READY)!")
