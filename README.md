@@ -472,4 +472,5 @@ DATABASE_URL=postgresql://postgres:postgres@db:5432/zhinonglianxiao
 
 ```powershell
 pg_ctl -D "D:\Zhinonglianxiao_completed\Zhinonglianxiao\db" start
+psql -U postgres -d zhinong_db
 ```

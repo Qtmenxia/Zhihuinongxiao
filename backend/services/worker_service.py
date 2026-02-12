@@ -57,7 +57,7 @@ async def process_single_service(session: AsyncSession, service: MCPService):
 
     try:
         # Step 1: 更新时间戳，表示 Worker 正在活跃处理
-        service.updated_at = datetime.utcnow()
+        service.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         await session.commit()
         
         # Step 2: 准备生成参数
@@ -168,7 +168,7 @@ async def process_single_service(session: AsyncSession, service: MCPService):
             
             service.status = ServiceStatus.FAILED
             service.total_errors += 1
-            service.updated_at = datetime.utcnow()
+            service.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
             if service.description:
                 service.description += f"\n\n[Error Log]: {str(e)}"
             

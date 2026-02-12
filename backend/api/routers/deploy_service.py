@@ -172,8 +172,10 @@ async def _auto_deploy_when_ready(task_id: str, request_id: str):
             # 更新数据库
             service.status = ServiceStatus.DEPLOYED
             service.is_deployed = True
-            service.deployed_at = datetime.now(timezone.utc)
+            service.deployed_at = datetime.now(timezone.utc).replace(tzinfo=None)
             service.endpoints = deployment_result.get("endpoints", [])
+            service.deploy_port = deployment_result.get("deploy_port")
+
             
             await db.commit()
             logger.info(f"[{request_id}] Service {task_id} deployed successfully")
@@ -289,8 +291,10 @@ async def deploy_existing_service(
         # 更新数据库
         service.status = ServiceStatus.DEPLOYED
         service.is_deployed = True
-        service.deployed_at = datetime.now(timezone.utc)
+        service.deployed_at = datetime.now(timezone.utc).replace(tzinfo=None)
         service.endpoints = deployment_result.get("endpoints", [])
+        service.deploy_port = deployment_result.get("deploy_port")
+
         
         await db.commit()
         

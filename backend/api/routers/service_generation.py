@@ -386,8 +386,9 @@ async def deploy_service(
         
         # 更新数据库
         service.is_deployed = True
-        service.deployed_at = datetime.now(timezone.utc)
+        service.deployed_at = datetime.now(timezone.utc).replace(tzinfo=None)
         service.endpoints = deployment_result["endpoints"]
+        service.deploy_port = deployment_result.get("deploy_port")
         await db.commit()
         
         logger.info(f"Service {service_id} deployed successfully")
@@ -632,25 +633,25 @@ async def call_service_tool(
     
     try:
         # 调用服务
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(timezone.utc).replace(tzinfo=None)
         result = await deployment_service.call_service_tool(
             service_id=service_id,
             tool_name=tool_name,
             params=params
         )
-        latency = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
+        latency = (datetime.now(timezone.utc).replace(tzinfo=None) - start_time).total_seconds() * 1000
         
         # 记录日志
         from backend.models.service_log import ServiceLog
         log_entry = ServiceLog(
-            id=f"log_{service_id}_{datetime.now(timezone.utc).timestamp()}",
+            id=f"log_{service_id}_{datetime.now(timezone.utc).replace(tzinfo=None).timestamp()}",
             service_id=service_id,
             tool_name=tool_name,
             input_params=params,
             output_result=str(result),
             latency=latency,
             status="success",
-            created_at=datetime.now(timezone.utc)
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None)
         )
         db.add(log_entry)
         
@@ -670,13 +671,13 @@ async def call_service_tool(
         # 记录错误日志
         from backend.models.service_log import ServiceLog
         log_entry = ServiceLog(
-            id=f"log_{service_id}_{datetime.now(timezone.utc).timestamp()}",
+            id=f"log_{service_id}_{datetime.now(timezone.utc).replace(tzinfo=None).timestamp()}",
             service_id=service_id,
             tool_name=tool_name,
             input_params=params,
             status="error",
             error_message=str(e),
-            created_at=datetime.now(timezone.utc)
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None)
         )
         db.add(log_entry)
         
