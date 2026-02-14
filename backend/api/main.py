@@ -19,7 +19,8 @@ from backend.api.routers import (
     customer_management,
     statistics,
     deploy_service,
-    upload
+    upload,
+    cost_management
 )
 from backend.api.middleware.auth import AuthMiddleware
 from backend.api.middleware.logging import LoggingMiddleware
@@ -213,6 +214,12 @@ app.include_router(
     upload.router,
     prefix=f"{settings.API_PREFIX}/upload",
     tags=["文件上传"]
+)
+
+app.include_router(
+    cost_management.router,
+    prefix=f"{settings.API_PREFIX}/costs",
+    tags=["成本管理"]
 )
 
 # 挂载静态文件目录（用于访问上传的文件）

@@ -17,6 +17,301 @@ router = APIRouter()
 
 
 @router.get(
+    "/overview",
+    summary="获取数据概览",
+    description="获取数据统计概览"
+)
+async def get_statistics_overview(
+    db: AsyncSession = Depends(get_session),
+    current_farmer: Farmer = Depends(get_current_farmer)
+):
+    """获取数据统计概览"""
+    from datetime import date
+    
+    # 计算本月和上月的时间范围
+    now = datetime.now(timezone.utc)
+    current_month_start = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+    
+    if now.month == 1:
+        last_month_start = datetime(now.year - 1, 12, 1, tzinfo=timezone.utc)
+        last_month_end = current_month_start - timedelta(seconds=1)
+    else:
+        last_month_start = datetime(now.year, now.month - 1, 1, tzinfo=timezone.utc)
+        last_month_end = current_month_start - timedelta(seconds=1)
+    
+    # 本月销售额
+    current_revenue_result = await db.execute(
+        select(func.sum(Order.total_amount)).where(
+            and_(
+                Order.farmer_id == current_farmer.id,
+                Order.status == "completed",
+                Order.created_at >= current_month_start
+            )
+        )
+    )
+    current_revenue = current_revenue_result.scalar() or 0.0
+    
+    # 上月销售额
+    last_revenue_result = await db.execute(
+        select(func.sum(Order.total_amount)).where(
+            and_(
+                Order.farmer_id == current_farmer.id,
+                Order.status == "completed",
+                Order.created_at >= last_month_start,
+                Order.created_at < current_month_start
+            )
+        )
+    )
+    last_revenue = last_revenue_result.scalar() or 0.0
+    
+    # 计算销售额环比
+    revenue_trend = round((current_revenue - last_revenue) / last_revenue * 100, 1) if last_revenue > 0 else 0.0
+    
+    # 本月订单数
+    current_orders_result = await db.execute(
+        select(func.count()).select_from(Order).where(
+            and_(
+                Order.farmer_id == current_farmer.id,
+                Order.created_at >= current_month_start
+            )
+        )
+    )
+    current_orders = current_orders_result.scalar() or 0
+    
+    # 上月订单数
+    last_orders_result = await db.execute(
+        select(func.count()).select_from(Order).where(
+            and_(
+                Order.farmer_id == current_farmer.id,
+                Order.created_at >= last_month_start,
+                Order.created_at < current_month_start
+            )
+        )
+    )
+    last_orders = last_orders_result.scalar() or 0
+    
+    # 计算订单环比
+    orders_trend = round((current_orders - last_orders) / last_orders * 100, 1) if last_orders > 0 else 0.0
+    
+    # 客户总数
+    from backend.models.customer import Customer
+    customers_result = await db.execute(
+        select(func.count()).select_from(Customer).where(
+            Customer.farmer_id == current_farmer.id
+        )
+    )
+    total_customers = customers_result.scalar() or 0
+    
+    # 本月新增客户
+    current_customers_result = await db.execute(
+        select(func.count()).select_from(Customer).where(
+            and_(
+                Customer.farmer_id == current_farmer.id,
+                Customer.created_at >= current_month_start
+            )
+        )
+    )
+    current_customers = current_customers_result.scalar() or 0
+    
+    # 上月新增客户
+    last_customers_result = await db.execute(
+        select(func.count()).select_from(Customer).where(
+            and_(
+                Customer.farmer_id == current_farmer.id,
+                Customer.created_at >= last_month_start,
+                Customer.created_at < current_month_start
+            )
+        )
+    )
+    last_customers = last_customers_result.scalar() or 0
+    
+    # 计算客户环比
+    customers_trend = round((current_customers - last_customers) / last_customers * 100, 1) if last_customers > 0 else 0.0
+    
+    # 产品总数
+    products_result = await db.execute(
+        select(func.count()).select_from(Product).where(
+            Product.farmer_id == current_farmer.id
+        )
+    )
+    total_products = products_result.scalar() or 0
+    
+    return {
+        "total_revenue": current_revenue,
+        "revenue_trend": revenue_trend,
+        "total_orders": current_orders,
+        "orders_trend": orders_trend,
+        "total_customers": total_customers,
+        "customers_trend": customers_trend,
+        "total_products": total_products,
+        "products_trend": 0.0
+    }
+
+
+@router.get(
+    "/order-status",
+    summary="获取订单状态分布",
+    description="获取订单状态分布统计"
+)
+async def get_order_status_distribution(
+    db: AsyncSession = Depends(get_session),
+    current_farmer: Farmer = Depends(get_current_farmer)
+):
+    """获取订单状态分布"""
+    
+    status_list = ["pending", "paid", "shipped", "completed", "cancelled"]
+    distribution = []
+    
+    for status in status_list:
+        result = await db.execute(
+            select(func.count()).select_from(Order).where(
+                and_(
+                    Order.farmer_id == current_farmer.id,
+                    Order.status == status
+                )
+            )
+        )
+        count = result.scalar() or 0
+        distribution.append({
+            "status": status,
+            "count": count
+        })
+    
+    return {"distribution": distribution}
+
+
+@router.get(
+    "/customer-region",
+    summary="获取客户地区分布",
+    description="获取客户地区分布统计"
+)
+async def get_customer_region_distribution(
+    db: AsyncSession = Depends(get_session),
+    current_farmer: Farmer = Depends(get_current_farmer)
+):
+    """获取客户地区分布"""
+    from backend.models.customer import Customer
+    
+    # 按省份统计客户数量
+    result = await db.execute(
+        select(
+            Customer.address,
+            func.count(Customer.id).label('count')
+        ).where(
+            Customer.farmer_id == current_farmer.id
+        ).group_by(Customer.address)
+    )
+    
+    regions = []
+    for row in result:
+        # 简单提取省份（实际应该更精确）
+        address = row[0] or "未知"
+        province = address.split()[0] if address else "未知"
+        regions.append({
+            "region": province,
+            "count": row[1]
+        })
+    
+    return {"regions": regions}
+
+
+@router.get(
+    "/realtime",
+    summary="获取实时数据",
+    description="获取实时统计数据"
+)
+async def get_realtime_data(
+    db: AsyncSession = Depends(get_session),
+    current_farmer: Farmer = Depends(get_current_farmer)
+):
+    """获取实时数据"""
+    
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # 今日订单
+    today_orders_result = await db.execute(
+        select(func.count()).select_from(Order).where(
+            and_(
+                Order.farmer_id == current_farmer.id,
+                Order.created_at >= today_start
+            )
+        )
+    )
+    today_orders = today_orders_result.scalar() or 0
+    
+    # 今日销售额
+    today_revenue_result = await db.execute(
+        select(func.sum(Order.total_amount)).where(
+            and_(
+                Order.farmer_id == current_farmer.id,
+                Order.status == "completed",
+                Order.created_at >= today_start
+            )
+        )
+    )
+    today_revenue = today_revenue_result.scalar() or 0.0
+    
+    # 待发货
+    pending_shipment_result = await db.execute(
+        select(func.count()).select_from(Order).where(
+            and_(
+                Order.farmer_id == current_farmer.id,
+                Order.status == "paid"
+            )
+        )
+    )
+    pending_shipment = pending_shipment_result.scalar() or 0
+    
+    # 待付款
+    pending_payment_result = await db.execute(
+        select(func.count()).select_from(Order).where(
+            and_(
+                Order.farmer_id == current_farmer.id,
+                Order.status == "pending"
+            )
+        )
+    )
+    pending_payment = pending_payment_result.scalar() or 0
+    
+    # 库存预警（库存低于10的产品）
+    low_stock_result = await db.execute(
+        select(func.count()).select_from(Product).where(
+            and_(
+                Product.farmer_id == current_farmer.id,
+                Product.stock < 10
+            )
+        )
+    )
+    low_stock = low_stock_result.scalar() or 0
+    
+    # 今日新增客户
+    from backend.models.customer import Customer
+    new_customers_result = await db.execute(
+        select(func.count()).select_from(Customer).where(
+            and_(
+                Customer.farmer_id == current_farmer.id,
+                Customer.created_at >= today_start
+            )
+        )
+    )
+    new_customers = new_customers_result.scalar() or 0
+    
+    # 客单价
+    avg_order_value = today_revenue / today_orders if today_orders > 0 else 0.0
+    
+    return {
+        "today_orders": today_orders,
+        "today_revenue": today_revenue,
+        "pending_shipment": pending_shipment,
+        "pending_payment": pending_payment,
+        "low_stock": low_stock,
+        "new_customers": new_customers,
+        "avg_order_value": round(avg_order_value, 2),
+        "conversion_rate": 0.0  # 需要更复杂的计算
+    }
+
+
+@router.get(
     "/dashboard",
     summary="获取仪表盘数据",
     description="获取农户后台仪表盘的统计数据"
