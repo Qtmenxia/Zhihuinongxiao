@@ -5,17 +5,21 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import logging
 import time
+from pathlib import Path
 
 from backend.api.routers import (
     service_generation,
     farmer_management,
     product_management,
     order_management,
+    customer_management,
     statistics,
-    deploy_service
+    deploy_service,
+    upload
 )
 from backend.api.middleware.auth import AuthMiddleware
 from backend.api.middleware.logging import LoggingMiddleware
@@ -188,6 +192,12 @@ app.include_router(
 )
 
 app.include_router(
+    customer_management.router,
+    prefix=f"{settings.API_PREFIX}/customers",
+    tags=["客户管理"]
+)
+
+app.include_router(
     statistics.router,
     prefix=f"{settings.API_PREFIX}/statistics",
     tags=["数据统计"]
@@ -198,6 +208,17 @@ app.include_router(
     prefix=f"{settings.API_PREFIX}/deploy",
     tags=["服务部署"]
 )
+
+app.include_router(
+    upload.router,
+    prefix=f"{settings.API_PREFIX}/upload",
+    tags=["文件上传"]
+)
+
+# 挂载静态文件目录（用于访问上传的文件）
+upload_dir = Path("uploads")
+upload_dir.mkdir(exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 # ==================== WebSocket支持 ====================

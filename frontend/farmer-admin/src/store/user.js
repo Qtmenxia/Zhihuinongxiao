@@ -83,6 +83,24 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  // 更新用户信息
+  async function updateUserInfo(data) {
+    try {
+      // 这里应该调用更新用户信息的API
+      // const res = await updateUser(data)
+      
+      // 模拟更新
+      Object.assign(userInfo.value, data)
+      
+      ElMessage.success('更新成功')
+      return true
+    } catch (error) {
+      console.error('Failed to update user info:', error)
+      ElMessage.error('更新失败')
+      return false
+    }
+  }
+
   // 登出
   async function doLogout() {
     try {
@@ -111,6 +129,7 @@ export const useUserStore = defineStore('user', () => {
     isPremium,
     login: doLogin,
     logout: doLogout,
-    fetchUserInfo
+    fetchUserInfo,
+    updateUserInfo
   }
 })

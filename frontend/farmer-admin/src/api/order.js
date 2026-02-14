@@ -14,48 +14,31 @@ export function getOrderDetail(id) {
 }
 
 // 获取订单统计
-export function getOrderStats(params) {
-  return request.get('/orders/stats', { params })
+export function getOrderStats() {
+  return request.get('/orders/statistics/summary')
 }
 
 // 订单发货
 export function shipOrder(id, data) {
-  return request.post(`/orders/${id}/ship`, data)
+  return request.post(`/orders/${id}/ship`, null, { params: data })
 }
 
 // 取消订单
 export function cancelOrder(id, reason) {
-  return request.post(`/orders/${id}/cancel`, { reason })
+  return request.post(`/orders/${id}/cancel`, null, { params: { reason } })
 }
 
-// 更新订单备注
-export function updateOrderRemark(id, remark) {
-  return request.patch(`/orders/${id}/remark`, { seller_remark: remark })
+// 更新订单状态
+export function updateOrderStatus(id, data) {
+  return request.put(`/orders/${id}/status`, data)
 }
 
-// 同意退款
-export function approveRefund(id) {
-  return request.post(`/orders/${id}/refund/approve`)
-}
-
-// 拒绝退款
-export function rejectRefund(id, reason) {
-  return request.post(`/orders/${id}/refund/reject`, { reason })
-}
-
-// 导出订单
-export function exportOrders(params) {
-  return request.get('/orders/export', { params, responseType: 'blob' })
-}
-
-// 获取物流信息
-export function getLogistics(trackingNo, company) {
-  return request.get('/logistics/track', { params: { tracking_no: trackingNo, company } })
-}
-
-// 批量发货
-export function batchShip(orders) {
-  return request.post('/orders/batch-ship', { orders })
+// 导出订单PDF
+export function exportOrdersPDF(params) {
+  return request.get('/orders/export/pdf', { 
+    params, 
+    responseType: 'blob' 
+  })
 }
 
 export default {
@@ -64,10 +47,6 @@ export default {
   getOrderStats,
   shipOrder,
   cancelOrder,
-  updateOrderRemark,
-  approveRefund,
-  rejectRefund,
-  exportOrders,
-  getLogistics,
-  batchShip
+  updateOrderStatus,
+  exportOrdersPDF
 }

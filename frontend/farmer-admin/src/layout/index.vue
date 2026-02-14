@@ -20,10 +20,10 @@
           <!-- 单个菜单项 -->
           <el-menu-item
             v-if="!route.children || route.children.length === 1"
-            :index="route.children ? route.children[0].path : route.path"
+            :index="getMenuIndex(route)"
           >
-            <el-icon><component :is="route.meta?.icon || route.children?.[0]?.meta?.icon" /></el-icon>
-            <template #title>{{ route.meta?.title || route.children?.[0]?.meta?.title }}</template>
+            <el-icon><component :is="getMenuIcon(route)" /></el-icon>
+            <template #title>{{ getMenuTitle(route) }}</template>
           </el-menu-item>
           
           <!-- 带子菜单 -->
@@ -138,6 +138,30 @@ const breadcrumbs = computed(() => {
 
 // 缓存的视图
 const cachedViews = ref(['Dashboard'])
+
+// 获取菜单索引
+const getMenuIndex = (route) => {
+  if (route.children && route.children.length === 1) {
+    return route.path + '/' + route.children[0].path
+  }
+  return route.path
+}
+
+// 获取菜单图标
+const getMenuIcon = (route) => {
+  if (route.children && route.children.length === 1) {
+    return route.children[0].meta?.icon || route.meta?.icon
+  }
+  return route.meta?.icon
+}
+
+// 获取菜单标题
+const getMenuTitle = (route) => {
+  if (route.children && route.children.length === 1) {
+    return route.children[0].meta?.title || route.meta?.title
+  }
+  return route.meta?.title
+}
 
 // 切换折叠
 const toggleCollapse = () => {

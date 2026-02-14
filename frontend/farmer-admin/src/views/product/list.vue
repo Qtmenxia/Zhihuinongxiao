@@ -80,7 +80,7 @@
         >
           <div class="product-image">
             <img 
-              :src="product.images?.[0] || '/default-product.jpg'" 
+              :src="getImageUrl(product.images?.[0])" 
               :alt="product.name"
               @error="handleImageError"
             />
@@ -337,13 +337,52 @@ async function handleDelete(product) {
 }
 
 // 导出
-function handleExport() {
-  ElMessage.info('导出功能开发中...')
+async function handleExport() {
+  try {
+    loading.value = true
+    
+    // 准备导出参数（使用当前筛选条件）
+    const params = {}
+    if (searchForm.keyword) params.keyword = searchForm.keyword
+    if (searchForm.category) params.category = searchForm.category
+    if (searchForm.is_active !== '') params.is_active = searchForm.is_active
+    
+    ElMessage.info('正在生成PDF文件，请稍候...')
+    
+    const blob = await exportProducts(params)
+    
+    // 创建下载链接
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `products_${new Date().getTime()}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    
+    ElMessage.success('导出成功')
+  } catch (error) {
+    console.error('Export failed:', error)
+    ElMessage.error('导出失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 获取图片URL
+function getImageUrl(url) {
+  if (!url) return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="300"%3E%3Crect fill="%23f0f0f0" width="300" height="300"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-size="20"%3E暂无图片%3C/text%3E%3C/svg%3E'
+  // 如果是相对路径，添加API基础URL
+  if (url.startsWith('/uploads/')) {
+    return `http://localhost:8000${url}`
+  }
+  return url
 }
 
 // 图片加载失败
 function handleImageError(e) {
-  e.target.src = 'https://via.placeholder.com/300x300?text=No+Image'
+  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="300"%3E%3Crect fill="%23f0f0f0" width="300" height="300"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-size="20"%3E图片加载失败%3C/text%3E%3C/svg%3E'
 }
 
 // 初始化

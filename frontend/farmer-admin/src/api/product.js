@@ -40,7 +40,10 @@ export function batchDeleteProducts(ids) {
 
 // 导出产品
 export function exportProducts(params) {
-  return request.get('/products/export', { params, responseType: 'blob' })
+  return request.get('/products/export/pdf', { 
+    params, 
+    responseType: 'blob' 
+  })
 }
 
 // 导入产品

@@ -105,13 +105,14 @@ class OrderStatusUpdate(BaseModel):
     """订单状态更新请求"""
     status: str = Field(..., description="新状态")
     tracking_number: Optional[str] = Field(None, description="物流单号")
+    shipping_method: Optional[str] = Field(None, description="物流公司")
     farmer_note: Optional[str] = Field(None, description="农户备注")
     
     @field_validator('status')
     @classmethod
     def status_must_be_valid(cls, v):
         valid_statuses = ['pending', 'paid', 'shipped', 'completed', 'cancelled', 'refunded']
-        if v not in valid_statuses:
+        if v.lower() not in valid_statuses:
             raise ValueError(f'状态必须是: {", ".join(valid_statuses)}')
         return v
 

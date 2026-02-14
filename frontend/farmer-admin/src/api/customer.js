@@ -15,12 +15,7 @@ export function getCustomerDetail(id) {
 
 // 获取客户统计
 export function getCustomerStats() {
-  return request.get('/customers/stats')
-}
-
-// 更新客户信息
-export function updateCustomer(id, data) {
-  return request.put(`/customers/${id}`, data)
+  return request.get('/customers/statistics/summary')
 }
 
 // 创建客户
@@ -28,51 +23,30 @@ export function createCustomer(data) {
   return request.post('/customers', data)
 }
 
-// 更新客户等级
-export function updateCustomerLevel(id, level) {
-  return request.patch(`/customers/${id}/level`, { level })
+// 更新客户信息
+export function updateCustomer(id, data) {
+  return request.put(`/customers/${id}`, data)
 }
 
-// 添加客户备注
-export function addCustomerRemark(id, remark) {
-  return request.post(`/customers/${id}/remarks`, { remark })
+// 删除客户
+export function deleteCustomer(id) {
+  return request.delete(`/customers/${id}`)
 }
 
-// 获取客户订单历史
-export function getCustomerOrders(id, params) {
-  return request.get(`/customers/${id}/orders`, { params })
-}
-
-// 发送消息给客户
-export function sendMessageToCustomer(id, message) {
-  return request.post(`/customers/${id}/messages`, { message })
-}
-
-// 导出客户
-export function exportCustomers(params) {
-  return request.get('/customers/export', { params, responseType: 'blob' })
-}
-
-// 获取客户标签
-export function getCustomerTags() {
-  return request.get('/customers/tags')
-}
-
-// 给客户添加标签
-export function addCustomerTag(id, tagId) {
-  return request.post(`/customers/${id}/tags`, { tag_id: tagId })
+// 导出客户PDF
+export function exportCustomersPDF(params) {
+  return request.get('/customers/export/pdf', { 
+    params, 
+    responseType: 'blob' 
+  })
 }
 
 export default {
   getCustomerList,
   getCustomerDetail,
   getCustomerStats,
+  createCustomer,
   updateCustomer,
-  updateCustomerLevel,
-  addCustomerRemark,
-  getCustomerOrders,
-  sendMessageToCustomer,
-  exportCustomers,
-  getCustomerTags,
-  addCustomerTag
+  deleteCustomer,
+  exportCustomersPDF
 }

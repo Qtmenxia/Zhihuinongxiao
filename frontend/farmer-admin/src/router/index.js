@@ -123,12 +123,14 @@ const routes = [
   {
     path: '/customer',
     component: Layout,
+    redirect: '/customer/list',
+    meta: { title: '客户管理', icon: 'User' },
     children: [
       {
-        path: '',
+        path: 'list',
         name: 'CustomerList',
         component: () => import('@/views/customer/list.vue'),
-        meta: { title: '客户管理', icon: 'User' }
+        meta: { title: '客户列表', icon: 'List' }
       }
     ]
   },

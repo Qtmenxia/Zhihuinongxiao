@@ -53,6 +53,7 @@ class Farmer(Base, TimestampMixin):
     products = relationship("Product", back_populates="farmer", cascade="all, delete-orphan")
     services = relationship("MCPService", back_populates="farmer", cascade="all, delete-orphan")
     orders = relationship("Order", back_populates="farmer", cascade="all, delete-orphan")
+    customers = relationship("Customer", back_populates="farmer", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Farmer(id={self.id}, name={self.name}, tier={self.tier.value})>"

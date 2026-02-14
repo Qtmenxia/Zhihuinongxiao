@@ -10,5 +10,5 @@ Base = declarative_base()
 
 class TimestampMixin:
     """时间戳Mixin"""
-    created_at = Column(DateTime, default=datetime.now(timezone.utc).replace(tzinfo=None), nullable=False)
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc).replace(tzinfo=None), onupdate=datetime.now(timezone.utc).replace(tzinfo=None))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=None, onupdate=lambda: datetime.now(timezone.utc))

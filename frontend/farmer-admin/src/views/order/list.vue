@@ -86,12 +86,12 @@
             @change="handleSearch"
           >
             <el-option label="全部" value="" />
-            <el-option label="待支付" value="pending" />
-            <el-option label="已支付" value="paid" />
-            <el-option label="已发货" value="shipped" />
-            <el-option label="已完成" value="completed" />
-            <el-option label="已取消" value="cancelled" />
-            <el-option label="已退款" value="refunded" />
+            <el-option label="待支付" value="PENDING" />
+            <el-option label="已支付" value="PAID" />
+            <el-option label="已发货" value="SHIPPED" />
+            <el-option label="已完成" value="COMPLETED" />
+            <el-option label="已取消" value="CANCELLED" />
+            <el-option label="已退款" value="REFUNDED" />
           </el-select>
         </el-form-item>
         <el-form-item label="下单时间">
@@ -215,14 +215,14 @@
                   查看详情
                 </el-button>
                 <el-button 
-                  v-if="order.status === 'paid'" 
+                  v-if="order.status === 'PAID'" 
                   type="success" 
                   @click="handleShip(order)"
                 >
                   <el-icon><Van /></el-icon>发货
                 </el-button>
                 <el-button 
-                  v-if="order.status === 'pending'" 
+                  v-if="order.status === 'PENDING'" 
                   type="danger" 
                   plain
                   @click="handleCancel(order)"
@@ -230,7 +230,7 @@
                   取消订单
                 </el-button>
                 <el-button 
-                  v-if="order.status === 'shipped'" 
+                  v-if="order.status === 'SHIPPED'" 
                   type="primary" 
                   plain
                   @click="handleViewLogistics(order)"
@@ -310,7 +310,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getOrderList, shipOrder, cancelOrder } from '@/api/order'
+import { getOrderList, getOrderStats, shipOrder, cancelOrder, exportOrdersPDF } from '@/api/order'
 import dayjs from 'dayjs'
 
 const router = useRouter()
@@ -378,8 +378,8 @@ async function loadOrders() {
     orderList.value = res.items || []
     total.value = res.total || 0
     
-    // 更新统计数据
-    updateStats(orderList.value)
+    // 加载统计数据
+    loadStats()
   } catch (error) {
     console.error('Failed to load orders:', error)
     ElMessage.error('加载订单列表失败')
@@ -388,12 +388,17 @@ async function loadOrders() {
   }
 }
 
-// 更新统计数据
-function updateStats(orders) {
-  stats.pending = orders.filter(o => o.status === 'pending').length
-  stats.paid = orders.filter(o => o.status === 'paid').length
-  stats.shipped = orders.filter(o => o.status === 'shipped').length
-  stats.completed = orders.filter(o => o.status === 'completed').length
+// 加载统计数据
+async function loadStats() {
+  try {
+    const res = await getOrderStats()
+    stats.pending = res.pending_orders || 0
+    stats.paid = res.paid_orders || 0
+    stats.shipped = res.shipped_orders || 0
+    stats.completed = res.completed_orders || 0
+  } catch (error) {
+    console.error('Failed to load stats:', error)
+  }
 }
 
 // 搜索
@@ -481,12 +486,55 @@ async function handleCancel(order) {
 
 // 查看物流
 function handleViewLogistics(order) {
-  ElMessage.info('物流查询功能开发中...')
+  if (order.tracking_number) {
+    ElMessageBox.alert(
+      `物流公司：${order.shipping_method || '未知'}\n物流单号：${order.tracking_number}`,
+      '物流信息',
+      {
+        confirmButtonText: '确定'
+      }
+    )
+  } else {
+    ElMessage.info('暂无物流信息')
+  }
 }
 
 // 导出
-function handleExport() {
-  ElMessage.info('导出功能开发中...')
+async function handleExport() {
+  try {
+    const params = { ...searchForm }
+    
+    // 处理日期范围
+    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
+      params.start_date = dayjs(searchForm.dateRange[0]).format('YYYY-MM-DD')
+      params.end_date = dayjs(searchForm.dateRange[1]).format('YYYY-MM-DD')
+    }
+    delete params.dateRange
+    
+    // 清理空参数
+    Object.keys(params).forEach(key => {
+      if (params[key] === '' || params[key] === null || params[key] === undefined) {
+        delete params[key]
+      }
+    })
+    
+    const blob = await exportOrdersPDF(params)
+    
+    // 创建下载链接
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `订单列表_${dayjs().format('YYYYMMDD_HHmmss')}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    
+    ElMessage.success('导出成功')
+  } catch (error) {
+    console.error('Failed to export orders:', error)
+    ElMessage.error('导出失败')
+  }
 }
 
 // 格式化日期
@@ -497,18 +545,18 @@ function formatDate(date) {
 // 格式化地址
 function formatAddress(address) {
   if (!address) return '-'
-  return `${address.province || ''} ${address.city || ''} ${address.district || ''} ${address.address || ''}`
+  return `${address.province || ''} ${address.city || ''} ${address.district || ''} ${address.detail || ''}`
 }
 
 // 获取状态类型
 function getStatusType(status) {
   const types = {
-    pending: 'warning',
-    paid: 'primary',
-    shipped: 'info',
-    completed: 'success',
-    cancelled: 'info',
-    refunded: 'danger'
+    PENDING: 'warning',
+    PAID: 'primary',
+    SHIPPED: 'info',
+    COMPLETED: 'success',
+    CANCELLED: 'info',
+    REFUNDED: 'danger'
   }
   return types[status] || 'info'
 }
@@ -516,12 +564,12 @@ function getStatusType(status) {
 // 获取状态文本
 function getStatusText(status) {
   const texts = {
-    pending: '待支付',
-    paid: '已支付',
-    shipped: '已发货',
-    completed: '已完成',
-    cancelled: '已取消',
-    refunded: '已退款'
+    PENDING: '待支付',
+    PAID: '已支付',
+    SHIPPED: '已发货',
+    COMPLETED: '已完成',
+    CANCELLED: '已取消',
+    REFUNDED: '已退款'
   }
   return texts[status] || status
 }

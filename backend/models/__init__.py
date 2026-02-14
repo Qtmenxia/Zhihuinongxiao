@@ -5,6 +5,7 @@ from backend.models.base import Base
 from backend.models.farmer import Farmer, FarmerTier
 from backend.models.product import Product
 from backend.models.order import Order, OrderStatus
+from backend.models.customer import Customer
 from backend.models.mcp_service import MCPService, ServiceStatus
 from backend.models.service_log import ServiceLog
 from backend.models.service_deployment import ServiceDeployment
@@ -16,6 +17,7 @@ __all__ = [
     "Product",
     "Order",
     "OrderStatus",
+    "Customer",
     "MCPService",
     "ServiceStatus",
     "ServiceLog",

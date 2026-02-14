@@ -6,8 +6,10 @@ from backend.api.routers import (
     farmer_management,
     product_management,
     order_management,
+    customer_management,
     statistics,
-    deploy_service
+    deploy_service,
+    upload
 )
 
 __all__ = [
@@ -15,6 +17,8 @@ __all__ = [
     "farmer_management",
     "product_management",
     "order_management",
+    "customer_management",
     "statistics",
-    "deploy_service"
+    "deploy_service",
+    "upload"
 ]
