@@ -9,6 +9,7 @@ from backend.models.customer import Customer
 from backend.models.mcp_service import MCPService, ServiceStatus
 from backend.models.service_log import ServiceLog
 from backend.models.service_deployment import ServiceDeployment
+from backend.models.cost_record import CostRecord
 
 __all__ = [
     "Base",
@@ -22,4 +23,5 @@ __all__ = [
     "ServiceStatus",
     "ServiceLog",
     "ServiceDeployment",
+    "CostRecord",
 ]
