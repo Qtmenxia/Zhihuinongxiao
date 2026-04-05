@@ -95,7 +95,14 @@ async def generate_service(
             farmer_id=current_farmer.id,
             product_category=request.product_category,
             model=request.model,
-            request_id=request_id
+            request_id=request_id,
+            run_in_background=False,
+        )
+
+        background_tasks.add_task(
+            service_manager.run_pending_workflow,
+            task_id,
+            request_id,
         )
         
         logger.info(f"[{request_id}] Service generation task created: {task_id}")
@@ -173,8 +180,8 @@ async def get_service_status(
     return ServiceStatusResponse(
         service_id=service_id,
         status=service.status.value,
-        progress=100 if service.status == ServiceStatus.READY else 0,
-        current_stage="completed" if service.status == ServiceStatus.READY else "failed",
+        progress=100 if service.status == ServiceStatus.COMPLETED else 0,
+        current_stage="completed" if service.status == ServiceStatus.COMPLETED else "failed",
         message=_get_status_message(service.status),
         cost=service.generation_cost,
         quality_score=service.quality_score,
@@ -360,7 +367,7 @@ async def deploy_service(
         )
     
     # 检查服务状态
-    if service.status != ServiceStatus.READY:
+    if service.status != ServiceStatus.COMPLETED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Service is not ready for deployment. Current status: {service.status.value}"
@@ -691,11 +698,10 @@ async def call_service_tool(
 def _get_status_message(status: ServiceStatus) -> str:
     """获取状态描述信息"""
     messages = {
+        ServiceStatus.PENDING: "任务已创建，等待开始...",
         ServiceStatus.GENERATING: "服务正在生成中...",
-        ServiceStatus.TESTING: "正在执行质量测试...",
-        ServiceStatus.READY: "服务已就绪，可以部署",
+        ServiceStatus.COMPLETED: "服务已生成完成，可以部署",
         ServiceStatus.DEPLOYED: "服务已部署并运行中",
-        ServiceStatus.FAILED: "服务生成失败",
-        ServiceStatus.ARCHIVED: "服务已归档"
+        ServiceStatus.FAILED: "服务生成失败"
     }
     return messages.get(status, "未知状态")

@@ -4,7 +4,7 @@ import os
 import sys
 import traceback
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import re
 
 from langchain_core.messages import HumanMessage
@@ -235,6 +235,7 @@ async def server_test_node(state: MCPWorkflowState) -> MCPWorkflowState:
     try:
         server_file_path_str = state.get("server_file_path")
         project_dir_str = state.get("project_dir")
+        connection_timeout = 45.0
         
         if not server_file_path_str or not project_dir_str:
             raise ValueError("Missing 'server_file_path' or 'project_dir' in state.")
@@ -254,7 +255,10 @@ async def server_test_node(state: MCPWorkflowState) -> MCPWorkflowState:
         if "gemini-2.5-pro" in str(server_file_path):
             logger.info(f"🔍 检测到 Gemini 模型生成的服务器，使用文件路径方式连接")
             logger.info(f"🚀 Starting and connecting to MCP server file: {server_file_path}")
-            await mcp_adapter.connect_stdio_file(str(server_file_path), cwd=PROJECT_ROOT)
+            await asyncio.wait_for(
+                mcp_adapter.connect_stdio_file(str(server_file_path), cwd=PROJECT_ROOT),
+                timeout=connection_timeout,
+            )
             agent_logger.log(event_type="mcp_adapter_connected", connection_type="file", file_path=str(server_file_path))
         else:
             # 原有的模块导入方式
@@ -262,7 +266,10 @@ async def server_test_node(state: MCPWorkflowState) -> MCPWorkflowState:
             module_name = str(relative_path).replace(".py", "").replace(os.path.sep, ".")
             
             logger.info(f"🚀 Starting and connecting to MCP server module: {module_name}")
-            await mcp_adapter.connect_stdio(module_name, cwd=PROJECT_ROOT)
+            await asyncio.wait_for(
+                mcp_adapter.connect_stdio(module_name, cwd=PROJECT_ROOT),
+                timeout=connection_timeout,
+            )
             agent_logger.log(event_type="mcp_adapter_connected", connection_type="module", module_name=module_name)
         
         # ----------------- Stage 1: Generate Test Plan -----------------

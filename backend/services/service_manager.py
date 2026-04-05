@@ -481,6 +481,7 @@ class ServiceManager:
     def __init__(self):
         self.workflow = _create_workflow()
         self.active_tasks: Dict[str, asyncio.Task] = {}
+        self.pending_states: Dict[str, dict] = {}
         logger.info(f"ServiceManager initialized with {type(self.workflow).__name__}")
     
     async def generate_product_service(
@@ -540,7 +541,8 @@ class ServiceManager:
         farmer_id: str,
         product_category: Optional[str] = None,
         model: Optional[str] = None,
-        request_id: Optional[str] = None
+        request_id: Optional[str] = None,
+        run_in_background: bool = True,
     ) -> str:
         """启动异步服务生成任务"""
         task_id = f"service_{farmer_id}_{uuid.uuid4().hex[:8]}"
@@ -593,11 +595,25 @@ class ServiceManager:
             logger.info(f"Created service record: {task_id}")
         
         # 后台启动工作流
-        task = asyncio.create_task(self._execute_workflow(task_id, initial_state, request_id))
-        self.active_tasks[task_id] = task
-        
+        if run_in_background:
+            task = asyncio.create_task(self._execute_workflow(task_id, initial_state, request_id))
+            self.active_tasks[task_id] = task
+            logger.info(f"[{request_id}] Workflow task scheduled for {task_id}")
+        else:
+            self.pending_states[task_id] = initial_state
+            logger.info(f"[{request_id}] Workflow task stored for external background runner: {task_id}")
+
         return task_id
     
+    async def run_pending_workflow(self, task_id: str, request_id: Optional[str] = None):
+        """运行已预创建的工作流任务。"""
+        initial_state = self.pending_states.pop(task_id, None)
+        if not initial_state:
+            logger.error(f"[{request_id}] Pending workflow state not found for {task_id}")
+            return
+
+        await self._execute_workflow(task_id, initial_state, request_id)
+
     async def _execute_workflow(
         self,
         task_id: str,
@@ -629,7 +645,7 @@ class ServiceManager:
                 service = svc_result.scalar_one()
                 
                 service.name = api_name or service.name
-                service.status = ServiceStatus.READY
+                service.status = ServiceStatus.COMPLETED
                 service.code = server_code
                 service.file_path = file_path
                 service.readme = readme
@@ -723,12 +739,11 @@ class ServiceManager:
     
     def _calculate_progress(self, status: ServiceStatus) -> int:
         progress_map = {
+            ServiceStatus.PENDING: 0,
             ServiceStatus.GENERATING: 50,
-            ServiceStatus.TESTING: 80,
-            ServiceStatus.READY: 100,
+            ServiceStatus.COMPLETED: 100,
             ServiceStatus.DEPLOYED: 100,
             ServiceStatus.FAILED: 0,
-            ServiceStatus.ARCHIVED: 100
         }
         return progress_map.get(status, 0)
     

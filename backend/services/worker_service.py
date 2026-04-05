@@ -124,7 +124,7 @@ async def process_single_service(session: AsyncSession, service: MCPService):
 
         service.code = generated_code
         # 修正：模型里没有 COMPLETED，改为 READY
-        service.status = ServiceStatus.READY 
+        service.status = ServiceStatus.COMPLETED 
         service.file_path = str(service_dir)
         service.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         

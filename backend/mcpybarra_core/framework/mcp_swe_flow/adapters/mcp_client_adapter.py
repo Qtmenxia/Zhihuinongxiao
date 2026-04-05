@@ -15,11 +15,15 @@ from mcp.shared.exceptions import McpError
 from logger import logger
 from mcp_swe_flow.adapters import MCPToolAdapter
 
+
 class MCPClientAdapter:
     """
     一个适配器，用于简化与MCP服务器的STDIO连接。
     每个实例管理一个独立的服务器连接。
     """
+
+    CONNECT_TIMEOUT = 30.0
+
     def __init__(self):
         """初始化一个新的MCPClientAdapter实例。"""
         self.session: Optional[ClientSession] = None
@@ -28,7 +32,7 @@ class MCPClientAdapter:
         self._initialized = False
         self.exit_stack = AsyncExitStack()
         self.tools: List[MCPToolAdapter] = []
-        
+
     async def _send_http_request(self, server_url: str, method: str, params: Dict[str, Any]) -> Any:
         """使用 httpx 发送一个包含自定义头部的 JSON-RPC 2.0 HTTP POST 请求"""
         headers = {
@@ -58,55 +62,39 @@ class MCPClientAdapter:
                 raise
 
     async def connect_stdio(self, module_name: str, cwd: Optional[Path] = None, max_output_length: int = 1200) -> List[MCPToolAdapter]:
-        """通过STDIO连接MCP服务器
-        
-        Args:
-            module_name: 模块名称 (如 "output-servers.mcp-chucknorris")
-            cwd: 工作目录，默认当前目录
-            max_output_length: 工具返回结果的最大长度，默认为1200个字符
-            
-        Returns:
-            适配后的LangChain工具列表
-        """
+        """通过STDIO连接MCP服务器"""
         if self.session:
             await self.disconnect()
-            
+
         try:
             logger.info(f"🔌 正在连接MCP服务器模块: {module_name}")
-            
-            # 准备参数
+
             command = sys.executable
             args = ["-m", module_name]
             cwd_str = str(cwd) if cwd else None
-            
+
             logger.info(f"🔄 准备启动命令: {command} {' '.join(args)}, cwd={cwd_str}")
-            
-            # 使用与 framwork/tool/mcp.py 相同的方式
+
             server_params = StdioServerParameters(command=command, args=args)
             logger.info(f"🔄 创建服务器参数: {server_params}")
-            
-            # 通过subprocess启动并连接到MCP服务器
-            stdio_transport = await self.exit_stack.enter_async_context(
-                stdio_client(server_params)
-            )
-            
-            # 创建会话
+
+            stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
             read, write = stdio_transport
-            self.session = await self.exit_stack.enter_async_context(
-                ClientSession(read, write)
-            )
-            
-            logger.info(f"✅ MCP服务器连接成功")
-            
-            # 初始化会话
-            await self.session.initialize()
+            self.session = await self.exit_stack.enter_async_context(ClientSession(read, write))
+
+            logger.info("✅ MCP服务器连接成功")
+
+            await asyncio.wait_for(self.session.initialize(), timeout=self.CONNECT_TIMEOUT)
             logger.info("✅ MCP会话初始化成功")
-            
+
             self._initialized = True
-            
-            # 获取并转换工具
             return await self.load_tools(max_output_length=max_output_length)
-            
+
+        except asyncio.TimeoutError:
+            logger.error(f"❌ MCP服务器连接超时（>{self.CONNECT_TIMEOUT}s）", exc_info=True)
+            if self.session:
+                await self.disconnect()
+            raise TimeoutError(f"MCP server connection timed out after {self.CONNECT_TIMEOUT}s")
         except Exception as e:
             logger.error(f"❌ MCP服务器连接失败: {e}", exc_info=True)
             if isinstance(e, ExceptionGroup):
@@ -117,51 +105,42 @@ class MCPClientAdapter:
             raise
 
     async def load_tools(self, max_output_length: int = 1200) -> List[MCPToolAdapter]:
-        """从MCP服务器加载工具并转换为LangChain工具
-        
-        Args:
-            max_output_length: 工具返回结果的最大长度，默认为1200个字符
-            
-        Returns:
-            适配后的LangChain工具列表
-        """
+        """从MCP服务器加载工具并转换为LangChain工具"""
         if not self.session:
             raise RuntimeError("MCP会话未初始化")
-            
+
         try:
-            # 获取工具列表
-            response = await self.session.list_tools()
+            response = await asyncio.wait_for(self.session.list_tools(), timeout=self.CONNECT_TIMEOUT)
             logger.info(f"📋 从MCP服务器获取到 {len(response.tools)} 个工具")
-            
-            # 清空现有工具
+
             self.tools = []
-            
-            # 转换工具
             for tool in response.tools:
                 try:
-                    # 创建适配器
                     adapter = MCPToolAdapter(
                         name=tool.name,
                         description=tool.description,
                         parameters=tool.inputSchema,
                         session=self.session,
-                        max_output_length=max_output_length
+                        max_output_length=max_output_length,
                     )
                     self.tools.append(adapter)
                     logger.info(f"✅ 成功转换工具: {tool.name}")
                 except Exception as e:
                     logger.error(f"❌ 工具 {tool.name} 转换失败: {e}", exc_info=True)
-            
+
             logger.info(f"🧰 共转换 {len(self.tools)} 个工具: {[tool.name for tool in self.tools]}")
             return self.tools
-            
+
+        except asyncio.TimeoutError:
+            logger.error(f"❌ 加载工具超时（>{self.CONNECT_TIMEOUT}s）", exc_info=True)
+            raise TimeoutError(f"Loading MCP tools timed out after {self.CONNECT_TIMEOUT}s")
         except Exception as e:
             logger.error(f"❌ 工具加载失败: {e}", exc_info=True)
             if isinstance(e, ExceptionGroup):
                 for i, sub_exc in enumerate(e.exceptions):
                     logger.error(f"  -> Sub-exception [{i+1}/{len(e.exceptions)}]: {sub_exc}", exc_info=True)
             raise
-    
+
     async def disconnect(self):
         """断开与MCP服务器的连接并清理资源。"""
         async with self._lock:
@@ -179,46 +158,33 @@ class MCPClientAdapter:
                 self._initialized = False
                 self.tools = []
                 self.exit_stack = AsyncExitStack()
-                logger.info("👋 已断开MCP服务器连接") 
+                logger.info("👋 已断开MCP服务器连接")
 
     async def connect_stdio_with_params(self, server_params: StdioServerParameters, max_output_length: int = 1200) -> List[MCPToolAdapter]:
-        """通过传入的StdioServerParameters连接MCP服务器
-        
-        Args:
-            server_params: MCP服务器的STDIO启动参数
-            max_output_length: 工具返回结果的最大长度，默认为1200个字符
-            
-        Returns:
-            适配后的LangChain工具列表
-        """
+        """通过传入的StdioServerParameters连接MCP服务器"""
         if self.session:
             await self.disconnect()
-            
+
         try:
             logger.info(f"🔌 正在通过预设参数连接MCP服务器: {server_params}")
-            
-            # 通过subprocess启动并连接到MCP服务器
-            stdio_transport = await self.exit_stack.enter_async_context(
-                stdio_client(server_params)
-            )
-            
-            # 创建会话
+
+            stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
             read, write = stdio_transport
-            self.session = await self.exit_stack.enter_async_context(
-                ClientSession(read, write)
-            )
-            
-            logger.info(f"✅ MCP服务器连接成功")
-            
-            # 初始化会话
-            await self.session.initialize()
+            self.session = await self.exit_stack.enter_async_context(ClientSession(read, write))
+
+            logger.info("✅ MCP服务器连接成功")
+
+            await asyncio.wait_for(self.session.initialize(), timeout=self.CONNECT_TIMEOUT)
             logger.info("✅ MCP会话初始化成功")
-            
+
             self._initialized = True
-            
-            # 获取并转换工具
             return await self.load_tools(max_output_length=max_output_length)
-            
+
+        except asyncio.TimeoutError:
+            logger.error(f"❌ MCP服务器连接超时（>{self.CONNECT_TIMEOUT}s）", exc_info=True)
+            if self.session:
+                await self.disconnect()
+            raise TimeoutError(f"MCP server connection timed out after {self.CONNECT_TIMEOUT}s")
         except Exception as e:
             logger.error(f"❌ MCP服务器连接失败: {e}", exc_info=True)
             if isinstance(e, ExceptionGroup):
@@ -229,59 +195,42 @@ class MCPClientAdapter:
             raise
 
     async def connect_stdio_file(self, file_path: str, cwd: Optional[Path] = None, max_output_length: int = 1200) -> List[MCPToolAdapter]:
-        """通过直接运行Python文件来连接MCP服务器
-        
-        Args:
-            file_path: Python文件的路径 (如 "workspace/pipeline-output-servers/gemini-2.5-pro/mcp_word_document_processor/mcp_word_document_processor.py")
-            cwd: 工作目录，默认当前目录
-            max_output_length: 工具返回结果的最大长度，默认为1200个字符
-            
-        Returns:
-            适配后的LangChain工具列表
-        """
+        """通过直接运行Python文件来连接MCP服务器"""
         if self.session:
             await self.disconnect()
-            
+
         try:
             logger.info(f"🔌 正在通过文件路径连接MCP服务器: {file_path}")
-            
-            # 确保文件路径存在
+
             if not Path(file_path).exists():
                 raise FileNotFoundError(f"MCP服务器文件不存在: {file_path}")
-            
-            # 准备参数
+
             command = sys.executable
-            args = [file_path]  # 直接运行Python文件
+            args = [file_path]
             cwd_str = str(cwd) if cwd else None
-            
+
             logger.info(f"🔄 准备启动命令: {command} {' '.join(args)}, cwd={cwd_str}")
-            
-            # 使用与 framwork/tool/mcp.py 相同的方式
+
             server_params = StdioServerParameters(command=command, args=args)
             logger.info(f"🔄 创建服务器参数: {server_params}")
-            
-            # 通过subprocess启动并连接到MCP服务器
-            stdio_transport = await self.exit_stack.enter_async_context(
-                stdio_client(server_params)
-            )
-            
-            # 创建会话
+
+            stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
             read, write = stdio_transport
-            self.session = await self.exit_stack.enter_async_context(
-                ClientSession(read, write)
-            )
-            
-            logger.info(f"✅ MCP服务器连接成功")
-            
-            # 初始化会话
-            await self.session.initialize()
+            self.session = await self.exit_stack.enter_async_context(ClientSession(read, write))
+
+            logger.info("✅ MCP服务器连接成功")
+
+            await asyncio.wait_for(self.session.initialize(), timeout=self.CONNECT_TIMEOUT)
             logger.info("✅ MCP会话初始化成功")
-            
+
             self._initialized = True
-            
-            # 获取并转换工具
             return await self.load_tools(max_output_length=max_output_length)
-            
+
+        except asyncio.TimeoutError:
+            logger.error(f"❌ MCP服务器连接超时（>{self.CONNECT_TIMEOUT}s）", exc_info=True)
+            if self.session:
+                await self.disconnect()
+            raise TimeoutError(f"MCP server connection timed out after {self.CONNECT_TIMEOUT}s")
         except Exception as e:
             logger.error(f"❌ MCP服务器连接失败: {e}", exc_info=True)
             if isinstance(e, ExceptionGroup):
@@ -289,4 +238,4 @@ class MCPClientAdapter:
                     logger.error(f"  -> Sub-exception [{i+1}/{len(e.exceptions)}]: {sub_exc}", exc_info=True)
             if self.session:
                 await self.disconnect()
-            raise 
+            raise

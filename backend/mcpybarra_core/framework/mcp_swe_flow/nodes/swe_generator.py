@@ -88,8 +88,10 @@ async def swe_generate_node(state: MCPWorkflowState) -> MCPWorkflowState:
     api_spec = state.get("api_spec")
     mcp_doc = state.get("mcp_doc")
     user_input = state.get("user_input")
-    # Get the specified model for the SWE agent, providing a fallback to prevent None.
-    swe_model = state.get("swe_model") or os.getenv("SWE_AGENT_MODEL")
+    # 优先使用显式的 swe_model，其次回退到 model_name，再到环境变量，避免 None 导致路径拼接报错。
+    swe_model = state.get("swe_model") or state.get("model_name") or os.getenv("SWE_AGENT_MODEL")
+    if not swe_model:
+        swe_model = "openrouter/anthropic/claude-3.5-sonnet"
 
     if not api_name and user_input:
         api_name = await generate_server_name_from_user_input(user_input, swe_model)

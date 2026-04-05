@@ -370,12 +370,11 @@ def check_service_quota(required_quota: int = 1):
     async def _check_quota(
         current_farmer: Farmer = Depends(get_current_farmer)
     ) -> Farmer:
-        # 根据农户等级设置配额限制
+        # 根据当前农户等级配置配额限制
         quota_limits = {
             FarmerTier.FREE: 3,
             FarmerTier.BASIC: 20,
-            FarmerTier.PRO: 100,
-            FarmerTier.ENTERPRISE: 1000
+            FarmerTier.PROFESSIONAL: 100,
         }
         
         max_services = quota_limits.get(current_farmer.tier, 3)

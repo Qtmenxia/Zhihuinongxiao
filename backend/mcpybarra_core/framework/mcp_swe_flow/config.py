@@ -219,7 +219,6 @@ def get_llm_for_agent(agent_name: str, model_override: Optional[str] = None) -> 
     - If a 'model_override' is provided for an 'SWE-Agent', it will be used.
     - Otherwise, it determines the correct model from AGENT_MODEL_MAPPING.
     """
-    model_override = "openrouter/anthropic/claude-3.5-sonnet"
     # 🔧 新增:清理agent_name中的非ASCII字符,防止HTTP headers编码错误
     safe_agent_name = re.sub(r'[^\x00-\x7F]+', '', agent_name)
     if not safe_agent_name:
@@ -243,12 +242,19 @@ def get_llm_for_agent(agent_name: str, model_override: Optional[str] = None) -> 
     # Step 2: Get provider config and credentials for the determined model
     provider_config = get_provider_config(model_name)
     env_prefix = provider_config["env_prefix"]
+
+    default_base_urls = {
+        "OPENROUTER": "https://openrouter.ai/api/v1",
+        "GEMINI": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        "QWEN": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "GPTSAPI": "https://api.gptsapi.net/v1",
+    }
     
-    base_url = os.getenv(f"{env_prefix}_BASE_URL")
+    base_url = os.getenv(f"{env_prefix}_BASE_URL") or default_base_urls.get(env_prefix)
     api_key = os.getenv(f"{env_prefix}_API_KEY")
     
-    if not base_url or not api_key:
-        error_msg = f"Missing environment variables for provider '{provider_config['provider']}'. Please set {env_prefix}_BASE_URL and {env_prefix}_API_KEY."
+    if not api_key:
+        error_msg = f"Missing environment variables for provider '{provider_config['provider']}'. Please set {env_prefix}_API_KEY."
         logger.error(error_msg)
         raise ValueError(error_msg)
         

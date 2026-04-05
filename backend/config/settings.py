@@ -3,13 +3,19 @@
 """
 import os
 from pathlib import Path
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
 from typing import Optional, List, Union
 
 
 class Settings(BaseSettings):
     """应用配置"""
+    model_config = SettingsConfigDict(
+        env_file=str(Path(__file__).parent.parent / ".env"),
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore"
+    )
     
     # 应用基础配置
     APP_NAME: str = "智农链销"
@@ -148,13 +154,6 @@ class Settings(BaseSettings):
     ENABLE_AUTO_REFINE: bool = True
     ENABLE_COST_ALERT: bool = True
     ENABLE_STOCK_ALERT: bool = True
-    
-    class Config:
-        """Pydantic配置"""
-        # 使用绝对路径指向 backend/.env 文件
-        env_file = str(Path(__file__).parent.parent / ".env")
-        env_file_encoding = "utf-8"
-        case_sensitive = True
     
 
 
