@@ -46,9 +46,9 @@ class TavilySearchTool(BaseTool):
 
     def __init__(self, **data: Any):
         super().__init__(**data)
-        self.api_key = os.getenv("TAVILY_API_KEY")
-        if not self.api_key:
-            raise ValueError("Tavily API key not found. Please set the TAVILY_API_KEY environment variable in your .env file.")
+        # Delay API key loading to allow .env to be loaded first
+        if self.api_key is None:
+            self.api_key = os.getenv("TAVILY_API_KEY")
 
     def _format_results(self, response: dict) -> str:
         """Formats Tavily search results into a readable string."""
@@ -73,6 +73,10 @@ class TavilySearchTool(BaseTool):
     def _run(self, query: str, search_depth: str = "basic", max_results: int = 5, include_domains: Optional[List[str]] = None, exclude_domains: Optional[List[str]] = None, **kwargs: Any) -> str:
         """Synchronously perform a Tavily search."""
         logger.info(f"Performing synchronous Tavily search for: '{query}'")
+        if not self.api_key:
+            error_msg = "Tavily API key not found. Please set the TAVILY_API_KEY environment variable in your .env file."
+            logger.error(error_msg)
+            return error_msg
         try:
             client = TavilyClient(api_key=self.api_key)
             # Use include_answer=True to get a direct answer if possible
